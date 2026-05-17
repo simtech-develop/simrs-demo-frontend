@@ -1,0 +1,12 @@
+{
+  "name": "simrs-type-dc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SIMRS Type D/C platform by SIMTECH",
+  "scripts": {
+    "dev": "pnpm --parallel --filter './apps/*' dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint"
+  },
+  "packageManager": "pnpm@11.1.2"
+}

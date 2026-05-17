@@ -1,0 +1,296 @@
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router'
+import {
+  clearStoredRegistrations,
+  getRegistrations,
+} from '../lib/registrationStorage'
+
+const visitChannels = [
+  'Datang Langsung',
+  'Rujukan FKTP',
+  'Kontrol Ulang',
+  'IGD',
+]
+
+function RegistrationPage() {
+  const [registrations, setRegistrations] = useState(() => getRegistrations())
+  const [searchTerm, setSearchTerm] = useState('')
+
+  const registrationStats = useMemo(() => {
+    const newPatients = registrations.filter((item) =>
+      item.type.includes('Baru'),
+    ).length
+
+    const waitingPatients = registrations.filter(
+      (item) => item.status === 'Menunggu',
+    ).length
+
+    const referralPatients = registrations.filter((item) =>
+      item.type.includes('Rujukan'),
+    ).length
+
+    const returningPatients = registrations.filter(
+      (item) => item.type === 'Pasien Lama',
+    ).length
+
+    return [
+      {
+        label: 'Pasien Baru Hari Ini',
+        value: String(newPatients),
+        note: 'Registrasi berhasil',
+      },
+      {
+        label: 'Pasien Lama Kembali',
+        value: String(returningPatients),
+        note: 'Kunjungan ulang',
+      },
+      {
+        label: 'Antrean Belum Dipanggil',
+        value: String(waitingPatients),
+        note: 'Menunggu pelayanan',
+      },
+      {
+        label: 'Rujukan Masuk',
+        value: String(referralPatients),
+        note: 'Perlu verifikasi',
+      },
+    ]
+  }, [registrations])
+
+  const filteredRegistrations = useMemo(() => {
+    const keyword = searchTerm.toLowerCase().trim()
+
+    if (!keyword) {
+      return registrations
+    }
+
+    return registrations.filter((row) =>
+      [row.rm, row.patient, row.nik, row.service, row.queue]
+        .join(' ')
+        .toLowerCase()
+        .includes(keyword),
+    )
+  }, [registrations, searchTerm])
+
+  const resetDemoData = () => {
+    clearStoredRegistrations()
+    setRegistrations(getRegistrations())
+    setSearchTerm('')
+  }
+
+  return (
+    <main className="registration-app">
+      <aside className="dashboard-sidebar-pro">
+        <div className="sidebar-brand-pro">
+          <span>SIMRS</span>
+          <strong>SIMTECH</strong>
+          <p>Type D / C Demo Platform</p>
+        </div>
+
+        <nav className="sidebar-menu-pro">
+          <Link to="/dashboard">Dashboard</Link>
+          <Link className="active" to="/pendaftaran">
+            Pendaftaran
+          </Link>
+          <Link to="/rawat-jalan">Rawat Jalan</Link>
+          <Link to="/igd">IGD</Link>
+          <Link to="/rme">RME</Link>
+          <Link to="/farmasi">Farmasi</Link>
+          <Link to="/kasir">Kasir</Link>
+          <Link to="/laporan">Laporan</Link>
+        </nav>
+
+        <div className="sidebar-demo-card">
+          <small>Demo Instance</small>
+          <strong>RS SIMTECH Medika</strong>
+          <span>Modul registrasi awal pasien</span>
+          <Link to="/">Keluar dari Demo</Link>
+        </div>
+      </aside>
+
+      <section className="registration-content">
+        <header className="registration-header">
+          <div>
+            <small>Modul Operasional</small>
+            <h1>Pendaftaran Pasien</h1>
+            <p>
+              Pusat layanan registrasi pasien baru, kunjungan ulang, rujukan,
+              dan antrean awal sebelum masuk ke unit pelayanan rumah sakit.
+            </p>
+          </div>
+
+          <Link className="new-patient-button-link" to="/pendaftaran/pasien-baru">
+            + Daftarkan Pasien Baru
+          </Link>
+        </header>
+
+        <section className="registration-stat-grid">
+          {registrationStats.map((item) => (
+            <article className="registration-stat-card" key={item.label}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+              <small>{item.note}</small>
+            </article>
+          ))}
+        </section>
+
+        <section className="registration-workspace-grid">
+          <article className="registration-panel patient-search-panel">
+            <div className="registration-panel-title">
+              <small>Pencarian Cepat</small>
+              <h2>Temukan Pasien</h2>
+            </div>
+
+            <div className="patient-search-form">
+              <label>
+                <span>NIK / No. RM / Nama Pasien</span>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Contoh: RM-000241 atau Siti Rahmawati"
+                />
+              </label>
+
+              <div className="search-filter-row">
+                <label>
+                  <span>Jenis Kunjungan</span>
+                  <select defaultValue="all">
+                    <option value="all">Semua</option>
+                    {visitChannels.map((channel) => (
+                      <option value={channel} key={channel}>
+                        {channel}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  <span>Status Registrasi</span>
+                  <select defaultValue="all">
+                    <option value="all">Semua Status</option>
+                    <option value="waiting">Menunggu</option>
+                    <option value="verified">Terverifikasi</option>
+                    <option value="served">Dilayani</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="search-action-row">
+                <button className="search-primary-button">Cari Pasien</button>
+                <button
+                  className="search-secondary-button"
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                >
+                  Reset Filter
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <article className="registration-panel process-map-panel">
+            <div className="registration-panel-title">
+              <small>Alur Registrasi</small>
+              <h2>Proses Layanan</h2>
+            </div>
+
+            <div className="registration-flow">
+              <div>
+                <span>01</span>
+                <strong>Identifikasi Pasien</strong>
+                <p>Cari data pasien lama atau buat identitas pasien baru.</p>
+              </div>
+
+              <div>
+                <span>02</span>
+                <strong>Pilih Tujuan Layanan</strong>
+                <p>Poli, IGD, kontrol ulang, atau layanan rujukan.</p>
+              </div>
+
+              <div>
+                <span>03</span>
+                <strong>Buat Antrean</strong>
+                <p>Nomor antrean terbit untuk proses pelayanan berikutnya.</p>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section className="registration-panel registration-table-panel">
+          <div className="registration-table-header">
+            <div className="registration-panel-title">
+              <small>Registrasi Hari Ini</small>
+              <h2>Daftar Pendaftaran Pasien</h2>
+            </div>
+
+            <div className="table-action-group">
+              <button type="button">Export</button>
+              <button type="button">Filter Lanjutan</button>
+              <button
+                type="button"
+                className="reset-demo-data-button"
+                onClick={resetDemoData}
+              >
+                Reset Data Demo
+              </button>
+            </div>
+          </div>
+
+          <div className="registration-table-wrapper">
+            <table className="registration-table">
+              <thead>
+                <tr>
+                  <th>No. RM</th>
+                  <th>Nama Pasien</th>
+                  <th>NIK</th>
+                  <th>Tujuan Layanan</th>
+                  <th>Jenis</th>
+                  <th>Antrean</th>
+                  <th>Status</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredRegistrations.map((row) => (
+                  <tr key={`${row.id}-${row.queue}`}>
+                    <td>{row.rm}</td>
+                    <td>{row.patient}</td>
+                    <td>{row.nik}</td>
+                    <td>{row.service}</td>
+                    <td>{row.type}</td>
+                    <td>{row.queue}</td>
+                    <td>
+                      <span
+                        className={`registration-status ${
+                          row.status === 'Menunggu'
+                            ? 'waiting'
+                            : row.status === 'Terverifikasi'
+                              ? 'verified'
+                              : 'served'
+                        }`}
+                      >
+                        {row.status}
+                      </span>
+                    </td>
+                    <td>
+                      <Link
+                        className="detail-registration-link"
+                        to={`/pendaftaran/detail/${row.id}`}
+                      >
+                        Lihat Detail
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  )
+}
+
+export default RegistrationPage
