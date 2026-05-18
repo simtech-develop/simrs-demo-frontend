@@ -1,11 +1,61 @@
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { getRegistrations } from '../lib/registrationStorage'
-import { getOutpatientExams } from '../lib/outpatientStorage'
-import { getPharmacyOrderByRegistrationId } from '../lib/pharmacyStorage'
-import {
-  ensureCashierBill,
-  getCashierBillByRegistrationId,
-} from '../lib/cashierStorage'
+import { api } from '../lib/api'
+
+type CashierBillStatus = 'UNPAID' | 'PAID' | 'CANCELED'
+
+type ApiCashierBill = {
+  id: string
+  billNo: string
+  status: CashierBillStatus
+  totalAmount: number
+  paidAmount: number
+  note?: string | null
+  paidAt?: string | null
+  createdAt: string
+  updatedAt: string
+  registrationId: string
+  items: Array<{
+    id: string
+    itemName: string
+    itemType: string
+    quantity: number
+    unitPrice: number
+    subtotal: number
+  }>
+  registration: {
+    id: string
+    registrationNo: string
+    patient: {
+      id: string
+      medicalRecordNo: string
+      fullName: string
+    }
+    clinic: {
+      id: string
+      code: string
+      name: string
+    }
+  }
+}
+
+type ApiPharmacyOrder = {
+  id: string
+  registrationId: string
+  status: 'PENDING' | 'PROCESSING' | 'READY' | 'COMPLETED' | 'CANCELED'
+}
+
+type CashierTransactionRow = {
+  id: string
+  registrationId: string
+  rm: string
+  patient: string
+  service: string
+  pharmacyStatus: string
+  totalAmount: number
+  status: string
+  statusClass: string
+}
 
 function formatRupiah(value: number) {
   return new Intl.NumberFormat('id-ID', {
@@ -15,54 +65,121 @@ function formatRupiah(value: number) {
   }).format(value)
 }
 
-function CashierPage() {
-  const registrations = getRegistrations()
-  const exams = getOutpatientExams()
-
-  const cashierTransactions = exams
-    .filter((exam) => exam.status === 'Pemeriksaan Selesai')
-    .map((exam) => {
-      const registration = registrations.find(
-        (item) => item.id === exam.registrationId,
-      )
-
-      const pharmacyOrder = getPharmacyOrderByRegistrationId(
-        exam.registrationId,
-      )
-
-      const consultationFee = 75000
-      const medicineFee = exam.prescriptions.reduce(
-        (total, _item) => total + 15000,
-        0,
-      )
-
-      const bill =
-        getCashierBillByRegistrationId(exam.registrationId) ??
-        ensureCashierBill(
-          exam.registrationId,
-          consultationFee,
-          medicineFee,
-        )
-
+function mapBillStatus(status: CashierBillStatus) {
+  switch (status) {
+    case 'UNPAID':
       return {
-        exam,
-        registration,
-        pharmacyOrder,
-        bill,
+        label: 'Belum Dibayar',
+        className: '',
       }
-    })
-    .filter((item) => item.registration)
+    case 'PAID':
+      return {
+        label: 'Lunas',
+        className: 'paid',
+      }
+    case 'CANCELED':
+      return {
+        label: 'Dibatalkan',
+        className: '',
+      }
+    default:
+      return {
+        label: 'Belum Dibayar',
+        className: '',
+      }
+  }
+}
 
-  const totalBills = cashierTransactions.length
-  const unpaidBills = cashierTransactions.filter(
-    (item) => item.bill.status === 'Belum Dibayar',
+function mapPharmacyStatus(
+  status?: ApiPharmacyOrder['status'],
+): string {
+  switch (status) {
+    case 'PENDING':
+      return 'Menunggu Diproses'
+    case 'PROCESSING':
+      return 'Sedang Disiapkan'
+    case 'READY':
+      return 'Obat Siap Diambil'
+    case 'COMPLETED':
+      return 'Selesai'
+    case 'CANCELED':
+      return 'Dibatalkan'
+    default:
+      return 'Tidak Ada Resep'
+  }
+}
+
+function CashierPage() {
+  const [transactions, setTransactions] = useState<CashierTransactionRow[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+
+  const loadCashierTransactions = async () => {
+    setIsLoading(true)
+    setLoadError('')
+
+    try {
+      const [bills, pharmacyOrders] = await Promise.all([
+        api.get<ApiCashierBill[]>('/cashier-bills'),
+        api.get<ApiPharmacyOrder[]>('/pharmacy-orders'),
+      ])
+
+      const pharmacyOrderMap = new Map(
+        pharmacyOrders.map((order) => [order.registrationId, order]),
+      )
+
+      const rows = bills.map((bill) => {
+        const billStatus = mapBillStatus(bill.status)
+        const pharmacyOrder = pharmacyOrderMap.get(bill.registrationId)
+
+        return {
+          id: bill.id,
+          registrationId: bill.registrationId,
+          rm: bill.registration.patient.medicalRecordNo,
+          patient: bill.registration.patient.fullName,
+          service: bill.registration.clinic.name,
+          pharmacyStatus: mapPharmacyStatus(pharmacyOrder?.status),
+          totalAmount: bill.totalAmount,
+          status: billStatus.label,
+          statusClass: billStatus.className,
+        }
+      })
+
+      setTransactions(rows)
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Gagal memuat data tagihan kasir dari backend.'
+
+      setTransactions([])
+      setLoadError(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadCashierTransactions()
+  }, [])
+
+  const totalBills = transactions.length
+
+  const unpaidBills = transactions.filter(
+    (item) => item.status === 'Belum Dibayar',
   ).length
-  const paidBills = cashierTransactions.filter(
-    (item) => item.bill.status === 'Lunas',
+
+  const paidBills = transactions.filter(
+    (item) => item.status === 'Lunas',
   ).length
-  const totalRevenue = cashierTransactions
-    .filter((item) => item.bill.status === 'Lunas')
-    .reduce((total, item) => total + item.bill.totalAmount, 0)
+
+  const totalRevenue = useMemo(
+    () =>
+      transactions
+        .filter((item) => item.status === 'Lunas')
+        .reduce((total, item) => total + item.totalAmount, 0),
+    [transactions],
+  )
 
   return (
     <main className="cashier-app">
@@ -100,17 +217,24 @@ function CashierPage() {
             <small>Modul Finansial</small>
             <h1>Kasir</h1>
             <p>
-              Monitoring tagihan pelayanan pasien yang terbentuk dari proses
-              pemeriksaan rawat jalan dan resep farmasi.
+              Monitoring tagihan pelayanan pasien yang telah terbentuk dan
+              tersimpan pada backend SIMRS Demo.
             </p>
           </div>
 
           <div className="cashier-status-card">
             <span>Status Modul</span>
             <strong>Aktif</strong>
-            <p>Terhubung dari layanan poli</p>
+            <p>Backend Integrated</p>
           </div>
         </header>
+
+        {loadError && (
+          <section className="registration-warning-banner">
+            <strong>Tagihan kasir belum dapat dimuat.</strong>
+            <span>{loadError}</span>
+          </section>
+        )}
 
         <section className="cashier-stat-grid">
           <article className="cashier-stat-card">
@@ -160,48 +284,47 @@ function CashierPage() {
                 </thead>
 
                 <tbody>
-                  {cashierTransactions.length === 0 ? (
+                  {isLoading && (
+                    <tr>
+                      <td colSpan={7} className="empty-table-state">
+                        Memuat tagihan pasien dari backend...
+                      </td>
+                    </tr>
+                  )}
+
+                  {!isLoading && transactions.length === 0 && (
                     <tr>
                       <td colSpan={7} className="empty-table-state">
                         Belum ada tagihan pasien yang terbentuk.
                       </td>
                     </tr>
-                  ) : (
-                    cashierTransactions.map(
-                      ({ exam, registration, pharmacyOrder, bill }) => (
-                        <tr key={exam.registrationId}>
-                          <td>{registration?.rm}</td>
-                          <td>{registration?.patient}</td>
-                          <td>{registration?.service}</td>
-                          <td>
-                            {pharmacyOrder?.status ?? 'Tidak Ada Resep'}
-                          </td>
-                          <td>{formatRupiah(bill.totalAmount)}</td>
-                          <td>
-                            <span
-                              className={`cashier-status-pill ${
-                                bill.status === 'Sedang Diproses'
-                                  ? 'processing'
-                                  : bill.status === 'Lunas'
-                                    ? 'paid'
-                                    : ''
-                              }`}
-                            >
-                              {bill.status}
-                            </span>
-                          </td>
-                          <td>
-                            <Link
-                              className="detail-registration-link"
-                              to={`/kasir/detail/${exam.registrationId}`}
-                            >
-                              Lihat Tagihan
-                            </Link>
-                          </td>
-                        </tr>
-                      ),
-                    )
                   )}
+
+                  {!isLoading &&
+                    transactions.map((transaction) => (
+                      <tr key={transaction.id}>
+                        <td>{transaction.rm}</td>
+                        <td>{transaction.patient}</td>
+                        <td>{transaction.service}</td>
+                        <td>{transaction.pharmacyStatus}</td>
+                        <td>{formatRupiah(transaction.totalAmount)}</td>
+                        <td>
+                          <span
+                            className={`cashier-status-pill ${transaction.statusClass}`}
+                          >
+                            {transaction.status}
+                          </span>
+                        </td>
+                        <td>
+                          <Link
+                            className="detail-registration-link"
+                            to={`/kasir/detail/${transaction.registrationId}`}
+                          >
+                            Lihat Tagihan
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
@@ -216,20 +339,20 @@ function CashierPage() {
             <div className="cashier-process-flow">
               <div>
                 <span>01</span>
-                <strong>Pemeriksaan Selesai</strong>
-                <p>Biaya konsultasi layanan terbentuk.</p>
+                <strong>Layanan Selesai</strong>
+                <p>Komponen biaya layanan dibentuk sebagai tagihan.</p>
               </div>
 
               <div>
                 <span>02</span>
                 <strong>Resep Farmasi</strong>
-                <p>Item obat menambah komponen tagihan pasien.</p>
+                <p>Status order farmasi ikut terlihat pada antrean kasir.</p>
               </div>
 
               <div>
                 <span>03</span>
                 <strong>Pembayaran Kasir</strong>
-                <p>Status transaksi diperbarui sampai lunas.</p>
+                <p>Status tagihan diperbarui sampai lunas.</p>
               </div>
             </div>
           </article>

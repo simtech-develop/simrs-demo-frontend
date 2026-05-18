@@ -1,9 +1,149 @@
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { getRegistrations } from '../lib/registrationStorage'
-import { getOutpatientExams } from '../lib/outpatientStorage'
-import { getPharmacyOrders } from '../lib/pharmacyStorage'
-import { getCashierBills } from '../lib/cashierStorage'
-import { getEmergencyAssessments } from '../lib/emergencyStorage'
+import { api } from '../lib/api'
+
+type RegistrationStatus =
+  | 'WAITING'
+  | 'IN_SERVICE'
+  | 'COMPLETED'
+  | 'CANCELED'
+
+type ApiRegistration = {
+  id: string
+  registrationNo: string
+  visitDate: string
+  queueNumber: number
+  chiefComplaint?: string | null
+  status: RegistrationStatus
+  createdAt: string
+  updatedAt: string
+  patient: {
+    id: string
+    medicalRecordNo: string
+    fullName: string
+  }
+  clinic: {
+    id: string
+    code: string
+    name: string
+  }
+}
+
+type ApiMedicalRecord = {
+  id: string
+  registrationId: string
+  diagnosis?: string | null
+  prescriptionNote?: string | null
+  examinedAt: string
+  createdAt: string
+  updatedAt: string
+  registration: {
+    id: string
+    patient: {
+      id: string
+      medicalRecordNo: string
+      fullName: string
+    }
+    clinic: {
+      id: string
+      code: string
+      name: string
+    }
+  }
+}
+
+type EmergencyAssessmentStatus =
+  | 'WAITING_TRIAGE'
+  | 'IN_ASSESSMENT'
+  | 'TRIAGE_COMPLETED'
+
+type EmergencyTriageLevel = 'RED' | 'YELLOW' | 'GREEN'
+
+type ApiEmergencyAssessment = {
+  id: string
+  registrationId: string
+  triageLevel: EmergencyTriageLevel
+  status: EmergencyAssessmentStatus
+  assessedAt?: string | null
+  createdAt: string
+  updatedAt: string
+  registration: {
+    id: string
+    patient: {
+      id: string
+      medicalRecordNo: string
+      fullName: string
+    }
+    clinic: {
+      id: string
+      code: string
+      name: string
+    }
+  }
+}
+
+type PharmacyOrderStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'READY'
+  | 'COMPLETED'
+  | 'CANCELED'
+
+type ApiPharmacyOrder = {
+  id: string
+  registrationId: string
+  status: PharmacyOrderStatus
+  createdAt: string
+  updatedAt: string
+  items: Array<{
+    id: string
+    medicineName: string
+    dosage: string
+    frequency: string
+    quantity: string
+    instruction?: string | null
+  }>
+  registration: {
+    id: string
+    patient: {
+      id: string
+      medicalRecordNo: string
+      fullName: string
+    }
+    clinic: {
+      id: string
+      code: string
+      name: string
+    }
+  }
+}
+
+type CashierBillStatus = 'UNPAID' | 'PAID' | 'CANCELED'
+
+type ApiCashierBill = {
+  id: string
+  billNo: string
+  status: CashierBillStatus
+  totalAmount: number
+  paidAmount: number
+  paidAt?: string | null
+  createdAt: string
+  updatedAt: string
+  registrationId: string
+  registration: {
+    id: string
+    patient: {
+      id: string
+      medicalRecordNo: string
+      fullName: string
+    }
+    clinic: {
+      id: string
+      code: string
+      name: string
+    }
+  }
+}
 
 function formatRupiah(value: number) {
   return new Intl.NumberFormat('id-ID', {
@@ -13,100 +153,175 @@ function formatRupiah(value: number) {
   }).format(value)
 }
 
+function mapBillStatus(status: CashierBillStatus) {
+  switch (status) {
+    case 'UNPAID':
+      return {
+        label: 'Belum Dibayar',
+        className: '',
+      }
+    case 'PAID':
+      return {
+        label: 'Lunas',
+        className: 'paid',
+      }
+    case 'CANCELED':
+      return {
+        label: 'Dibatalkan',
+        className: '',
+      }
+    default:
+      return {
+        label: 'Belum Dibayar',
+        className: '',
+      }
+  }
+}
+
 function ReportPage() {
-  const registrations = getRegistrations()
-  const exams = getOutpatientExams()
-  const pharmacyOrders = getPharmacyOrders()
-  const cashierBills = getCashierBills()
-  const emergencyAssessments = getEmergencyAssessments()
+  const [registrations, setRegistrations] = useState<ApiRegistration[]>([])
+  const [medicalRecords, setMedicalRecords] = useState<ApiMedicalRecord[]>([])
+  const [emergencyAssessments, setEmergencyAssessments] = useState<
+    ApiEmergencyAssessment[]
+  >([])
+  const [pharmacyOrders, setPharmacyOrders] = useState<ApiPharmacyOrder[]>([])
+  const [cashierBills, setCashierBills] = useState<ApiCashierBill[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
-  const completedExams = exams.filter(
-    (exam) => exam.status === 'Pemeriksaan Selesai',
-  )
+  const loadReportData = async () => {
+    setIsLoading(true)
+    setLoadError('')
 
-  const prescriptionsCreated = exams.filter(
-    (exam) => exam.prescriptions.length > 0,
-  )
+    try {
+      const [
+        registrationsResponse,
+        medicalRecordsResponse,
+        emergencyAssessmentsResponse,
+        pharmacyOrdersResponse,
+        cashierBillsResponse,
+      ] = await Promise.all([
+        api.get<ApiRegistration[]>('/registrations'),
+        api.get<ApiMedicalRecord[]>('/medical-records'),
+        api.get<ApiEmergencyAssessment[]>('/emergency-assessments'),
+        api.get<ApiPharmacyOrder[]>('/pharmacy-orders'),
+        api.get<ApiCashierBill[]>('/cashier-bills'),
+      ])
 
-  const readyMedicines = pharmacyOrders.filter(
-    (order) => order.status === 'Obat Siap Diambil',
-  )
+      setRegistrations(registrationsResponse)
+      setMedicalRecords(medicalRecordsResponse)
+      setEmergencyAssessments(emergencyAssessmentsResponse)
+      setPharmacyOrders(pharmacyOrdersResponse)
+      setCashierBills(cashierBillsResponse)
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Laporan gagal memuat data backend.'
 
-  const paidBills = cashierBills.filter(
-    (bill) => bill.status === 'Lunas',
-  )
+      setLoadError(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
-  const totalRevenue = paidBills.reduce(
-    (total, bill) => total + bill.totalAmount,
-    0,
+  useEffect(() => {
+    void loadReportData()
+  }, [])
+
+  const outpatientRegistrations = registrations.filter(
+    (registration) => registration.clinic.code !== 'IGD',
   )
 
   const emergencyPatients = registrations.filter(
-    (item) => item.service === 'IGD',
+    (registration) => registration.clinic.code === 'IGD',
   )
 
+  const completedOutpatientRecords = medicalRecords.length
+
   const completedTriage = emergencyAssessments.filter(
-    (assessment) => assessment.status === 'Triage Selesai',
+    (assessment) => assessment.status === 'TRIAGE_COMPLETED',
   )
 
   const redTriage = completedTriage.filter(
-    (assessment) => assessment.triageLevel === 'Merah',
+    (assessment) => assessment.triageLevel === 'RED',
   )
 
   const yellowTriage = completedTriage.filter(
-    (assessment) => assessment.triageLevel === 'Kuning',
+    (assessment) => assessment.triageLevel === 'YELLOW',
   )
 
   const greenTriage = completedTriage.filter(
-    (assessment) => assessment.triageLevel === 'Hijau',
+    (assessment) => assessment.triageLevel === 'GREEN',
+  )
+
+  const prescriptionsCreated = pharmacyOrders.length
+
+  const readyMedicines = pharmacyOrders.filter(
+    (order) => order.status === 'READY' || order.status === 'COMPLETED',
+  )
+
+  const pendingMedicines = pharmacyOrders.filter(
+    (order) => order.status === 'PENDING' || order.status === 'PROCESSING',
+  )
+
+  const paidBills = cashierBills.filter((bill) => bill.status === 'PAID')
+  const unpaidBills = cashierBills.filter((bill) => bill.status === 'UNPAID')
+
+  const totalRevenue = paidBills.reduce(
+    (total, bill) => total + bill.paidAmount,
+    0,
+  )
+
+  const totalOutstanding = unpaidBills.reduce(
+    (total, bill) => total + bill.totalAmount,
+    0,
   )
 
   const journeyMetrics = [
     {
       label: 'Registrasi Pasien',
       value: registrations.length,
-      note: 'Data pasien masuk',
+      note: 'Total kunjungan tercatat',
     },
     {
-      label: 'Pemeriksaan Poli',
-      value: completedExams.length,
-      note: 'Pemeriksaan selesai',
+      label: 'Rawat Jalan',
+      value: outpatientRegistrations.length,
+      note: 'Registrasi layanan poli',
     },
     {
       label: 'RME Rawat Jalan',
-      value: completedExams.length,
-      note: 'Catatan klinis tercatat',
+      value: completedOutpatientRecords,
+      note: 'Catatan klinis tersimpan',
     },
     {
       label: 'Resep Farmasi',
-      value: prescriptionsCreated.length,
-      note: 'Order obat terkirim',
+      value: prescriptionsCreated,
+      note: 'Order farmasi terbentuk',
     },
     {
-      label: 'Obat Siap',
+      label: 'Obat Siap / Selesai',
       value: readyMedicines.length,
-      note: 'Selesai diproses farmasi',
+      note: 'Dispensing farmasi lanjut',
     },
     {
       label: 'Pembayaran Lunas',
       value: paidBills.length,
-      note: 'Transaksi selesai',
+      note: 'Transaksi kasir selesai',
     },
   ]
 
-  const latestBills = cashierBills
-    .map((bill) => {
-      const registration = registrations.find(
-        (item) => item.id === bill.registrationId,
-      )
-
-      return {
-        bill,
-        registration,
-      }
-    })
-    .filter((item) => item.registration)
-    .slice(0, 5)
+  const latestBills = useMemo(
+    () =>
+      [...cashierBills]
+        .sort(
+          (left, right) =>
+            new Date(right.updatedAt).getTime() -
+            new Date(left.updatedAt).getTime(),
+        )
+        .slice(0, 5),
+    [cashierBills],
+  )
 
   return (
     <main className="report-app">
@@ -144,41 +359,47 @@ function ReportPage() {
             <small>Executive Operational Report</small>
             <h1>Laporan Operasional SIMRS</h1>
             <p>
-              Ringkasan terintegrasi dari alur pasien, pelayanan klinis,
-              gawat darurat, farmasi, dan transaksi kasir pada prototype SIMRS
-              Type D/C.
+              Ringkasan terintegrasi dari alur pasien, pelayanan klinis, IGD,
+              farmasi, dan transaksi kasir berdasarkan data backend SIMRS Demo.
             </p>
           </div>
 
           <div className="report-status-card">
             <span>Status Data</span>
-            <strong>Live Demo</strong>
+            <strong>{isLoading ? 'Loading' : 'Live Backend'}</strong>
             <p>Terhubung dari seluruh modul</p>
           </div>
         </header>
 
+        {loadError && (
+          <section className="registration-warning-banner">
+            <strong>Laporan belum dapat dimuat sempurna.</strong>
+            <span>{loadError}</span>
+          </section>
+        )}
+
         <section className="report-highlight-grid">
           <article className="report-highlight-card">
             <span>Total Registrasi</span>
-            <strong>{registrations.length}</strong>
-            <small>Pasien pada data demo</small>
+            <strong>{isLoading ? '...' : registrations.length}</strong>
+            <small>Seluruh registrasi backend</small>
           </article>
 
           <article className="report-highlight-card">
-            <span>Total Pemeriksaan</span>
-            <strong>{completedExams.length}</strong>
-            <small>Rawat jalan selesai</small>
+            <span>Total RME Rawat Jalan</span>
+            <strong>{isLoading ? '...' : completedOutpatientRecords}</strong>
+            <small>Catatan klinis pemeriksaan poli</small>
           </article>
 
           <article className="report-highlight-card">
             <span>Triage IGD Selesai</span>
-            <strong>{completedTriage.length}</strong>
-            <small>Asesmen gawat darurat</small>
+            <strong>{isLoading ? '...' : completedTriage.length}</strong>
+            <small>Asesmen gawat darurat final</small>
           </article>
 
           <article className="report-highlight-card revenue-card">
             <span>Pendapatan Tercatat</span>
-            <strong>{formatRupiah(totalRevenue)}</strong>
+            <strong>{isLoading ? '...' : formatRupiah(totalRevenue)}</strong>
             <small>Akumulasi pembayaran lunas</small>
           </article>
         </section>
@@ -187,7 +408,7 @@ function ReportPage() {
           <article className="report-panel">
             <div className="report-panel-title">
               <small>Service Journey Funnel</small>
-              <h2>Perjalanan Pasien Rawat Jalan</h2>
+              <h2>Perjalanan Pasien Terintegrasi</h2>
             </div>
 
             <div className="journey-funnel-list">
@@ -203,7 +424,7 @@ function ReportPage() {
                   </div>
 
                   <div className="journey-step-value">
-                    {item.value}
+                    {isLoading ? '...' : item.value}
                   </div>
                 </div>
               ))}
@@ -254,34 +475,82 @@ function ReportPage() {
           <div className="emergency-report-grid">
             <article>
               <span>Pasien IGD</span>
-              <strong>{emergencyPatients.length}</strong>
+              <strong>{isLoading ? '...' : emergencyPatients.length}</strong>
               <small>Registrasi layanan gawat darurat</small>
             </article>
 
             <article>
               <span>Triage Selesai</span>
-              <strong>{completedTriage.length}</strong>
+              <strong>{isLoading ? '...' : completedTriage.length}</strong>
               <small>Asesmen telah difinalisasi</small>
             </article>
 
             <article className="red-emergency-report">
               <span>Prioritas Merah</span>
-              <strong>{redTriage.length}</strong>
+              <strong>{isLoading ? '...' : redTriage.length}</strong>
               <small>Urgensi tinggi</small>
             </article>
 
             <article className="yellow-emergency-report">
               <span>Prioritas Kuning</span>
-              <strong>{yellowTriage.length}</strong>
+              <strong>{isLoading ? '...' : yellowTriage.length}</strong>
               <small>Perlu penanganan cepat</small>
             </article>
 
             <article className="green-emergency-report">
               <span>Prioritas Hijau</span>
-              <strong>{greenTriage.length}</strong>
+              <strong>{isLoading ? '...' : greenTriage.length}</strong>
               <small>Stabil / non-kritis</small>
             </article>
           </div>
+        </section>
+
+        <section className="report-main-grid">
+          <article className="report-panel">
+            <div className="report-panel-title">
+              <small>Pharmacy Snapshot</small>
+              <h2>Status Order Farmasi</h2>
+            </div>
+
+            <div className="coverage-list">
+              <div>
+                <span>Total Order Farmasi</span>
+                <strong>{isLoading ? '...' : pharmacyOrders.length}</strong>
+              </div>
+              <div>
+                <span>Menunggu / Diproses</span>
+                <strong>{isLoading ? '...' : pendingMedicines.length}</strong>
+              </div>
+              <div>
+                <span>Siap / Selesai</span>
+                <strong>{isLoading ? '...' : readyMedicines.length}</strong>
+              </div>
+            </div>
+          </article>
+
+          <article className="report-panel">
+            <div className="report-panel-title">
+              <small>Financial Snapshot</small>
+              <h2>Status Tagihan Kasir</h2>
+            </div>
+
+            <div className="coverage-list">
+              <div>
+                <span>Total Bill Kasir</span>
+                <strong>{isLoading ? '...' : cashierBills.length}</strong>
+              </div>
+              <div>
+                <span>Belum Dibayar</span>
+                <strong>{isLoading ? '...' : unpaidBills.length}</strong>
+              </div>
+              <div>
+                <span>Piutang Outstanding</span>
+                <strong>
+                  {isLoading ? '...' : formatRupiah(totalOutstanding)}
+                </strong>
+              </div>
+            </div>
+          </article>
         </section>
 
         <section className="report-panel latest-transaction-panel">
@@ -294,6 +563,7 @@ function ReportPage() {
             <table className="report-table">
               <thead>
                 <tr>
+                  <th>No. Bill</th>
                   <th>No. RM</th>
                   <th>Nama Pasien</th>
                   <th>Total Tagihan</th>
@@ -302,34 +572,44 @@ function ReportPage() {
               </thead>
 
               <tbody>
-                {latestBills.length === 0 ? (
+                {isLoading && (
                   <tr>
-                    <td colSpan={4} className="empty-table-state">
+                    <td colSpan={5} className="empty-table-state">
+                      Memuat transaksi kasir backend...
+                    </td>
+                  </tr>
+                )}
+
+                {!isLoading && latestBills.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="empty-table-state">
                       Belum ada transaksi kasir yang terbentuk.
                     </td>
                   </tr>
-                ) : (
-                  latestBills.map(({ bill, registration }) => (
-                    <tr key={bill.registrationId}>
-                      <td>{registration?.rm}</td>
-                      <td>{registration?.patient}</td>
-                      <td>{formatRupiah(bill.totalAmount)}</td>
-                      <td>
-                        <span
-                          className={`cashier-status-pill ${
-                            bill.status === 'Sedang Diproses'
-                              ? 'processing'
-                              : bill.status === 'Lunas'
-                                ? 'paid'
-                                : ''
-                          }`}
-                        >
-                          {bill.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
                 )}
+
+                {!isLoading &&
+                  latestBills.map((bill) => {
+                    const billStatus = mapBillStatus(bill.status)
+
+                    return (
+                      <tr key={bill.id}>
+                        <td>{bill.billNo}</td>
+                        <td>
+                          {bill.registration.patient.medicalRecordNo}
+                        </td>
+                        <td>{bill.registration.patient.fullName}</td>
+                        <td>{formatRupiah(bill.totalAmount)}</td>
+                        <td>
+                          <span
+                            className={`cashier-status-pill ${billStatus.className}`}
+                          >
+                            {billStatus.label}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
               </tbody>
             </table>
           </div>

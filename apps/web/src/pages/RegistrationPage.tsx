@@ -1,9 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import {
-  clearStoredRegistrations,
-  getRegistrations,
-} from '../lib/registrationStorage'
+import { api } from '../lib/api'
 
 const visitChannels = [
   'Datang Langsung',
@@ -12,9 +9,107 @@ const visitChannels = [
   'IGD',
 ]
 
+type ApiRegistrationStatus =
+  | 'WAITING'
+  | 'IN_SERVICE'
+  | 'COMPLETED'
+  | 'CANCELED'
+
+type ApiRegistration = {
+  id: string
+  registrationNo: string
+  visitDate: string
+  queueNumber: number
+  chiefComplaint?: string | null
+  status: ApiRegistrationStatus
+  createdAt: string
+  patient: {
+    id: string
+    medicalRecordNo: string
+    nationalId?: string | null
+    fullName: string
+  }
+  clinic: {
+    id: string
+    code: string
+    name: string
+  }
+  doctor?: {
+    id: string
+    fullName: string
+  } | null
+}
+
+type RegistrationRow = {
+  id: string
+  rm: string
+  patient: string
+  nik: string
+  service: string
+  type: string
+  queue: string
+  status: 'Menunggu' | 'Terverifikasi' | 'Dilayani' | 'Dibatalkan'
+}
+
+function mapStatus(status: ApiRegistrationStatus): RegistrationRow['status'] {
+  switch (status) {
+    case 'WAITING':
+      return 'Menunggu'
+    case 'IN_SERVICE':
+      return 'Terverifikasi'
+    case 'COMPLETED':
+      return 'Dilayani'
+    case 'CANCELED':
+      return 'Dibatalkan'
+    default:
+      return 'Menunggu'
+  }
+}
+
+function mapRegistration(item: ApiRegistration): RegistrationRow {
+  const queuePrefix = item.clinic.code || 'Q'
+
+  return {
+    id: item.id,
+    rm: item.patient.medicalRecordNo,
+    patient: item.patient.fullName,
+    nik: item.patient.nationalId ?? '-',
+    service: item.clinic.name,
+    type: item.clinic.code === 'IGD' ? 'IGD' : 'Pasien Baru',
+    queue: `${queuePrefix}-${String(item.queueNumber).padStart(3, '0')}`,
+    status: mapStatus(item.status),
+  }
+}
+
 function RegistrationPage() {
-  const [registrations, setRegistrations] = useState(() => getRegistrations())
+  const [registrations, setRegistrations] = useState<RegistrationRow[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+
+  const loadRegistrations = async () => {
+    setIsLoading(true)
+    setLoadError('')
+
+    try {
+      const response = await api.get<ApiRegistration[]>('/registrations')
+      setRegistrations(response.map(mapRegistration))
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Gagal memuat data pendaftaran dari backend.'
+
+      setRegistrations([])
+      setLoadError(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadRegistrations()
+  }, [])
 
   const registrationStats = useMemo(() => {
     const newPatients = registrations.filter((item) =>
@@ -72,10 +167,9 @@ function RegistrationPage() {
     )
   }, [registrations, searchTerm])
 
-  const resetDemoData = () => {
-    clearStoredRegistrations()
-    setRegistrations(getRegistrations())
+  const refreshData = () => {
     setSearchTerm('')
+    void loadRegistrations()
   }
 
   return (
@@ -123,6 +217,13 @@ function RegistrationPage() {
             + Daftarkan Pasien Baru
           </Link>
         </header>
+
+        {loadError && (
+          <section className="registration-warning-banner">
+            <strong>Data pendaftaran belum dapat dimuat.</strong>
+            <span>{loadError}</span>
+          </section>
+        )}
 
         <section className="registration-stat-grid">
           {registrationStats.map((item) => (
@@ -177,7 +278,9 @@ function RegistrationPage() {
               </div>
 
               <div className="search-action-row">
-                <button className="search-primary-button">Cari Pasien</button>
+                <button className="search-primary-button" type="button">
+                  Cari Pasien
+                </button>
                 <button
                   className="search-secondary-button"
                   type="button"
@@ -230,9 +333,9 @@ function RegistrationPage() {
               <button
                 type="button"
                 className="reset-demo-data-button"
-                onClick={resetDemoData}
+                onClick={refreshData}
               >
-                Reset Data Demo
+                Muat Ulang Data
               </button>
             </div>
           </div>
@@ -253,37 +356,50 @@ function RegistrationPage() {
               </thead>
 
               <tbody>
-                {filteredRegistrations.map((row) => (
-                  <tr key={`${row.id}-${row.queue}`}>
-                    <td>{row.rm}</td>
-                    <td>{row.patient}</td>
-                    <td>{row.nik}</td>
-                    <td>{row.service}</td>
-                    <td>{row.type}</td>
-                    <td>{row.queue}</td>
-                    <td>
-                      <span
-                        className={`registration-status ${
-                          row.status === 'Menunggu'
-                            ? 'waiting'
-                            : row.status === 'Terverifikasi'
-                              ? 'verified'
-                              : 'served'
-                        }`}
-                      >
-                        {row.status}
-                      </span>
-                    </td>
-                    <td>
-                      <Link
-                        className="detail-registration-link"
-                        to={`/pendaftaran/detail/${row.id}`}
-                      >
-                        Lihat Detail
-                      </Link>
-                    </td>
+                {isLoading && (
+                  <tr>
+                    <td colSpan={8}>Memuat data pendaftaran dari backend...</td>
                   </tr>
-                ))}
+                )}
+
+                {!isLoading && filteredRegistrations.length === 0 && (
+                  <tr>
+                    <td colSpan={8}>Belum ada data pendaftaran.</td>
+                  </tr>
+                )}
+
+                {!isLoading &&
+                  filteredRegistrations.map((row) => (
+                    <tr key={`${row.id}-${row.queue}`}>
+                      <td>{row.rm}</td>
+                      <td>{row.patient}</td>
+                      <td>{row.nik}</td>
+                      <td>{row.service}</td>
+                      <td>{row.type}</td>
+                      <td>{row.queue}</td>
+                      <td>
+                        <span
+                          className={`registration-status ${
+                            row.status === 'Menunggu'
+                              ? 'waiting'
+                              : row.status === 'Terverifikasi'
+                                ? 'verified'
+                                : 'served'
+                          }`}
+                        >
+                          {row.status}
+                        </span>
+                      </td>
+                      <td>
+                        <Link
+                          className="detail-registration-link"
+                          to={`/pendaftaran/detail/${row.id}`}
+                        >
+                          Lihat Detail
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>

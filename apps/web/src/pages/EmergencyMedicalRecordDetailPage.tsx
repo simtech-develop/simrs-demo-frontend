@@ -1,32 +1,188 @@
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { getRegistrationById } from '../lib/registrationStorage'
-import { getEmergencyAssessmentByRegistrationId } from '../lib/emergencyStorage'
+import { api } from '../lib/api'
 
-function displayValue(value?: string) {
+type RegistrationStatusApi =
+  | 'WAITING'
+  | 'IN_SERVICE'
+  | 'COMPLETED'
+  | 'CANCELED'
+
+type TriageLevelApi = 'RED' | 'YELLOW' | 'GREEN'
+
+type AssessmentStatusApi =
+  | 'WAITING_TRIAGE'
+  | 'IN_ASSESSMENT'
+  | 'TRIAGE_COMPLETED'
+
+type ApiRegistration = {
+  id: string
+  registrationNo: string
+  queueNumber: number
+  status: RegistrationStatusApi
+  patient: {
+    id: string
+    medicalRecordNo: string
+    fullName: string
+  }
+  clinic: {
+    id: string
+    code: string
+    name: string
+  }
+}
+
+type ApiEmergencyAssessment = {
+  id: string
+  registrationId: string
+  triageLevel: TriageLevelApi
+  chiefComplaint?: string | null
+  consciousness?: string | null
+  bloodPressure?: string | null
+  pulse?: string | null
+  respiratoryRate?: string | null
+  oxygenSaturation?: string | null
+  emergencyNote?: string | null
+  status: AssessmentStatusApi
+  assessedAt?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+function displayValue(value?: string | null) {
   return value && value.trim() !== '' ? value : '-'
+}
+
+function mapTriageLevel(level: TriageLevelApi) {
+  switch (level) {
+    case 'RED':
+      return 'Merah'
+    case 'YELLOW':
+      return 'Kuning'
+    case 'GREEN':
+      return 'Hijau'
+    default:
+      return 'Hijau'
+  }
+}
+
+function mapRegistrationStatus(status: RegistrationStatusApi) {
+  switch (status) {
+    case 'WAITING':
+      return 'Menunggu'
+    case 'IN_SERVICE':
+      return 'Dalam Pelayanan'
+    case 'COMPLETED':
+      return 'Selesai'
+    case 'CANCELED':
+      return 'Dibatalkan'
+    default:
+      return 'Menunggu'
+  }
+}
+
+function formatAssessmentDate(value?: string | null) {
+  if (!value) {
+    return '-'
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return '-'
+  }
+
+  return new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
 }
 
 function EmergencyMedicalRecordDetailPage() {
   const { id } = useParams()
-  const registration = id ? getRegistrationById(id) : undefined
-  const assessment = id
-    ? getEmergencyAssessmentByRegistrationId(id)
-    : undefined
 
-  if (!registration || !assessment || assessment.status !== 'Triage Selesai') {
+  const [registration, setRegistration] =
+    useState<ApiRegistration | null>(null)
+  const [assessment, setAssessment] =
+    useState<ApiEmergencyAssessment | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+
+  const loadEmergencyRme = async () => {
+    if (!id) {
+      setLoadError('ID registrasi IGD tidak tersedia.')
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+    setLoadError('')
+
+    try {
+      const [registrationResponse, assessmentResponse] = await Promise.all([
+        api.get<ApiRegistration>(`/registrations/${id}`),
+        api.get<ApiEmergencyAssessment>(
+          `/emergency-assessments/registration/${id}`,
+        ),
+      ])
+
+      setRegistration(registrationResponse)
+      setAssessment(assessmentResponse)
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Gagal memuat rekam medis IGD dari backend.'
+
+      setRegistration(null)
+      setAssessment(null)
+      setLoadError(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadEmergencyRme()
+  }, [id])
+
+  if (isLoading) {
+    return (
+      <main className="detail-not-found-page">
+        <section className="detail-not-found-card">
+          <small>Memuat RME IGD</small>
+          <h1>Detail rekam medis IGD sedang disiapkan</h1>
+          <p>Mengambil registrasi dan asesmen triage dari backend SIMRS.</p>
+        </section>
+      </main>
+    )
+  }
+
+  if (
+    !registration ||
+    !assessment ||
+    assessment.status !== 'TRIAGE_COMPLETED'
+  ) {
     return (
       <main className="detail-not-found-page">
         <section className="detail-not-found-card">
           <small>RME IGD Tidak Ditemukan</small>
           <h1>Rekam medis IGD belum tersedia</h1>
           <p>
-            Pastikan triage pasien IGD telah selesai dan tersimpan terlebih dahulu.
+            {loadError ||
+              'Pastikan triage pasien IGD telah selesai dan tersimpan terlebih dahulu.'}
           </p>
           <Link to="/rme">Kembali ke Daftar RME</Link>
         </section>
       </main>
     )
   }
+
+  const patient = registration.patient
+  const triageLevel = mapTriageLevel(assessment.triageLevel)
 
   return (
     <main className="emergency-rme-detail-app">
@@ -66,7 +222,7 @@ function EmergencyMedicalRecordDetailPage() {
             </Link>
 
             <small>Detail Rekam Medis IGD</small>
-            <h1>{registration.patient}</h1>
+            <h1>{patient.fullName}</h1>
             <p>
               Catatan triage dan asesmen awal pasien gawat darurat yang telah
               tersimpan sebagai bagian dari rekam medis elektronik.
@@ -74,33 +230,35 @@ function EmergencyMedicalRecordDetailPage() {
           </div>
 
           <div
-            className={`emergency-rme-status-card ${assessment.triageLevel.toLowerCase()}`}
+            className={`emergency-rme-status-card ${triageLevel.toLowerCase()}`}
           >
             <span>Status RME IGD</span>
             <strong>Triage Selesai</strong>
-            <p>{assessment.triageLevel}</p>
+            <p>{triageLevel}</p>
           </div>
         </header>
 
         <section className="emergency-rme-patient-banner">
           <article>
             <span>No. RM</span>
-            <strong>{registration.rm}</strong>
+            <strong>{patient.medicalRecordNo}</strong>
           </article>
 
           <article>
             <span>Pasien</span>
-            <strong>{registration.patient}</strong>
+            <strong>{patient.fullName}</strong>
           </article>
 
           <article>
             <span>Antrean IGD</span>
-            <strong>{registration.queue}</strong>
+            <strong>
+              IGD-{String(registration.queueNumber).padStart(3, '0')}
+            </strong>
           </article>
 
           <article>
             <span>Prioritas</span>
-            <strong>{assessment.triageLevel}</strong>
+            <strong>{triageLevel}</strong>
           </article>
         </section>
 
@@ -113,12 +271,12 @@ function EmergencyMedicalRecordDetailPage() {
 
             <div className="rme-clinical-card">
               <span>Keluhan Utama</span>
-              <strong>{assessment.chiefComplaint}</strong>
+              <strong>{displayValue(assessment.chiefComplaint)}</strong>
             </div>
 
             <div className="rme-clinical-card">
               <span>Tingkat Kesadaran</span>
-              <strong>{assessment.consciousness}</strong>
+              <strong>{displayValue(assessment.consciousness)}</strong>
             </div>
           </article>
 
@@ -131,22 +289,22 @@ function EmergencyMedicalRecordDetailPage() {
             <div className="emergency-rme-vital-grid">
               <div>
                 <span>Tekanan Darah</span>
-                <strong>{assessment.bloodPressure}</strong>
+                <strong>{displayValue(assessment.bloodPressure)}</strong>
               </div>
 
               <div>
                 <span>Nadi</span>
-                <strong>{assessment.pulse}</strong>
+                <strong>{displayValue(assessment.pulse)}</strong>
               </div>
 
               <div>
                 <span>Respirasi</span>
-                <strong>{assessment.respiratoryRate}</strong>
+                <strong>{displayValue(assessment.respiratoryRate)}</strong>
               </div>
 
               <div>
                 <span>Saturasi Oksigen</span>
-                <strong>{assessment.oxygenSaturation}</strong>
+                <strong>{displayValue(assessment.oxygenSaturation)}</strong>
               </div>
             </div>
           </article>
@@ -160,6 +318,30 @@ function EmergencyMedicalRecordDetailPage() {
             <div className="emergency-rme-note-card">
               <span>Catatan Petugas</span>
               <strong>{displayValue(assessment.emergencyNote)}</strong>
+            </div>
+          </article>
+
+          <article className="emergency-rme-detail-panel wide-panel">
+            <div className="rme-panel-title">
+              <small>Administrasi IGD</small>
+              <h2>Informasi Kunjungan</h2>
+            </div>
+
+            <div className="rme-assessment-grid">
+              <div>
+                <span>Nomor Registrasi</span>
+                <strong>{registration.registrationNo}</strong>
+              </div>
+
+              <div>
+                <span>Status Registrasi</span>
+                <strong>{mapRegistrationStatus(registration.status)}</strong>
+              </div>
+
+              <div>
+                <span>Waktu Triage</span>
+                <strong>{formatAssessmentDate(assessment.assessedAt)}</strong>
+              </div>
             </div>
           </article>
         </section>

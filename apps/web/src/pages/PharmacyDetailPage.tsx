@@ -1,30 +1,200 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { getRegistrationById } from '../lib/registrationStorage'
-import { getOutpatientExamByRegistrationId } from '../lib/outpatientStorage'
-import {
-  ensurePharmacyOrder,
-  updatePharmacyOrderStatus,
-  type PharmacyOrder,
-} from '../lib/pharmacyStorage'
+import { api } from '../lib/api'
+
+type PharmacyOrderStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'READY'
+  | 'COMPLETED'
+  | 'CANCELED'
+
+type ApiPharmacyOrder = {
+  id: string
+  status: PharmacyOrderStatus
+  note?: string | null
+  createdAt: string
+  updatedAt: string
+  registrationId: string
+  items: Array<{
+    id: string
+    medicineName: string
+    dosage: string
+    frequency: string
+    quantity: string
+    instruction?: string | null
+  }>
+  registration: {
+    id: string
+    registrationNo: string
+    patient: {
+      id: string
+      medicalRecordNo: string
+      fullName: string
+    }
+    clinic: {
+      id: string
+      code: string
+      name: string
+    }
+  }
+}
+
+type ApiMedicalRecord = {
+  id: string
+  registrationId: string
+  diagnosis?: string | null
+}
+
+type UiPharmacyStatus =
+  | 'Menunggu Diproses'
+  | 'Sedang Disiapkan'
+  | 'Obat Siap Diambil'
+  | 'Selesai'
+  | 'Dibatalkan'
+
+function displayValue(value?: string | null) {
+  return value && value.trim() !== '' ? value : '-'
+}
+
+function mapStatus(status: PharmacyOrderStatus): UiPharmacyStatus {
+  switch (status) {
+    case 'PENDING':
+      return 'Menunggu Diproses'
+    case 'PROCESSING':
+      return 'Sedang Disiapkan'
+    case 'READY':
+      return 'Obat Siap Diambil'
+    case 'COMPLETED':
+      return 'Selesai'
+    case 'CANCELED':
+      return 'Dibatalkan'
+    default:
+      return 'Menunggu Diproses'
+  }
+}
+
+function mapUiStatusToApi(status: UiPharmacyStatus): PharmacyOrderStatus {
+  switch (status) {
+    case 'Menunggu Diproses':
+      return 'PENDING'
+    case 'Sedang Disiapkan':
+      return 'PROCESSING'
+    case 'Obat Siap Diambil':
+      return 'READY'
+    case 'Selesai':
+      return 'COMPLETED'
+    case 'Dibatalkan':
+      return 'CANCELED'
+    default:
+      return 'PENDING'
+  }
+}
 
 function PharmacyDetailPage() {
   const { id } = useParams()
-  const registration = id ? getRegistrationById(id) : undefined
-  const exam = id ? getOutpatientExamByRegistrationId(id) : undefined
 
-  const [order, setOrder] = useState<PharmacyOrder | undefined>(() =>
-    id ? ensurePharmacyOrder(id) : undefined,
-  )
+  const [order, setOrder] = useState<ApiPharmacyOrder | null>(null)
+  const [diagnosis, setDiagnosis] = useState<string>('-')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [loadError, setLoadError] = useState('')
+  const [updateError, setUpdateError] = useState('')
 
-  if (!registration || !exam || exam.prescriptions.length === 0 || !order) {
+  const loadPharmacyDetail = async () => {
+    if (!id) {
+      setLoadError('ID registrasi tidak tersedia.')
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+    setLoadError('')
+
+    try {
+      const pharmacyOrderResponse = await api.get<ApiPharmacyOrder>(
+        `/pharmacy-orders/registration/${id}`,
+      )
+
+      setOrder(pharmacyOrderResponse)
+
+      try {
+        const medicalRecordResponse = await api.get<ApiMedicalRecord>(
+          `/medical-records/registration/${id}`,
+        )
+
+        setDiagnosis(medicalRecordResponse.diagnosis ?? '-')
+      } catch {
+        setDiagnosis('-')
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Gagal memuat detail resep farmasi dari backend.'
+
+      setOrder(null)
+      setDiagnosis('-')
+      setLoadError(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadPharmacyDetail()
+  }, [id])
+
+  const changeStatus = async (status: UiPharmacyStatus) => {
+    if (!order) {
+      return
+    }
+
+    setIsUpdating(true)
+    setUpdateError('')
+
+    try {
+      const response = await api.patch<
+        ApiPharmacyOrder,
+        { status: PharmacyOrderStatus }
+      >(`/pharmacy-orders/${order.id}/status`, {
+        status: mapUiStatusToApi(status),
+      })
+
+      setOrder(response)
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Gagal memperbarui status resep farmasi.'
+
+      setUpdateError(message)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <main className="detail-not-found-page">
+        <section className="detail-not-found-card">
+          <small>Memuat Resep</small>
+          <h1>Detail farmasi sedang disiapkan</h1>
+          <p>Mengambil order resep pasien dari backend SIMRS.</p>
+        </section>
+      </main>
+    )
+  }
+
+  if (!order) {
     return (
       <main className="detail-not-found-page">
         <section className="detail-not-found-card">
           <small>Resep Tidak Ditemukan</small>
           <h1>Data resep farmasi belum tersedia</h1>
           <p>
-            Pastikan dokter sudah menyimpan pemeriksaan dan mengisi resep obat.
+            {loadError ||
+              'Pastikan dokter sudah menyimpan pemeriksaan dan mengisi resep obat.'}
           </p>
           <Link to="/farmasi">Kembali ke Farmasi</Link>
         </section>
@@ -32,12 +202,10 @@ function PharmacyDetailPage() {
     )
   }
 
-  const changeStatus = (
-    status: 'Menunggu Diproses' | 'Sedang Disiapkan' | 'Obat Siap Diambil',
-  ) => {
-    const updated = updatePharmacyOrderStatus(registration.id, status)
-    setOrder(updated)
-  }
+  const registration = order.registration
+  const patient = registration.patient
+  const clinic = registration.clinic
+  const uiStatus = mapStatus(order.status)
 
   return (
     <main className="pharmacy-detail-app">
@@ -77,58 +245,71 @@ function PharmacyDetailPage() {
             </Link>
 
             <small>Detail Resep Farmasi</small>
-            <h1>{registration.patient}</h1>
+            <h1>{patient.fullName}</h1>
             <p>
-              Rincian resep elektronik yang berasal dari pemeriksaan rawat jalan.
+              Rincian resep elektronik yang telah terbentuk sebagai order
+              farmasi pada backend SIMRS Demo.
             </p>
           </div>
 
           <div className="pharmacy-detail-status-card">
             <span>Status Resep</span>
-            <strong>{order.status}</strong>
-            <p>{registration.rm}</p>
+            <strong>{uiStatus}</strong>
+            <p>{patient.medicalRecordNo}</p>
           </div>
         </header>
+
+        {updateError && (
+          <section className="registration-warning-banner">
+            <strong>Status resep belum diperbarui.</strong>
+            <span>{updateError}</span>
+          </section>
+        )}
 
         <section className="pharmacy-workflow-panel">
           <div>
             <small>Workflow Farmasi</small>
             <h2>Perbarui Status Resep</h2>
             <p>
-              Simulasikan proses verifikasi dan dispensing obat oleh petugas
-              farmasi.
+              Proses order farmasi dari antrean resep masuk hingga obat siap
+              diserahkan kepada pasien.
             </p>
           </div>
 
           <div className="pharmacy-workflow-actions">
             <button
               type="button"
+              disabled={isUpdating}
               className={
-                order.status === 'Sedang Disiapkan' ? 'active-action' : ''
+                uiStatus === 'Sedang Disiapkan' ? 'active-action' : ''
               }
-              onClick={() => changeStatus('Sedang Disiapkan')}
+              onClick={() => void changeStatus('Sedang Disiapkan')}
             >
               Mulai Siapkan Obat
             </button>
 
             <button
               type="button"
+              disabled={isUpdating}
               className={
-                order.status === 'Obat Siap Diambil' ? 'active-action ready' : ''
+                uiStatus === 'Obat Siap Diambil'
+                  ? 'active-action ready'
+                  : ''
               }
-              onClick={() => changeStatus('Obat Siap Diambil')}
+              onClick={() => void changeStatus('Obat Siap Diambil')}
             >
               Tandai Obat Siap
             </button>
 
             <button
               type="button"
+              disabled={isUpdating}
               className={
-                order.status === 'Menunggu Diproses'
+                uiStatus === 'Menunggu Diproses'
                   ? 'active-action pending'
                   : 'pending'
               }
-              onClick={() => changeStatus('Menunggu Diproses')}
+              onClick={() => void changeStatus('Menunggu Diproses')}
             >
               Kembalikan ke Menunggu
             </button>
@@ -138,22 +319,22 @@ function PharmacyDetailPage() {
         <section className="pharmacy-patient-banner">
           <article>
             <span>No. RM</span>
-            <strong>{registration.rm}</strong>
+            <strong>{patient.medicalRecordNo}</strong>
           </article>
 
           <article>
             <span>Pasien</span>
-            <strong>{registration.patient}</strong>
+            <strong>{patient.fullName}</strong>
           </article>
 
           <article>
             <span>Poli</span>
-            <strong>{registration.service}</strong>
+            <strong>{clinic.name}</strong>
           </article>
 
           <article>
             <span>Diagnosis</span>
-            <strong>{exam.workingDiagnosis}</strong>
+            <strong>{displayValue(diagnosis)}</strong>
           </article>
         </section>
 
@@ -164,7 +345,7 @@ function PharmacyDetailPage() {
           </div>
 
           <div className="prescription-detail-list">
-            {exam.prescriptions.map((item, index) => (
+            {order.items.map((item, index) => (
               <article className="prescription-detail-card" key={item.id}>
                 <div className="prescription-number">{index + 1}</div>
 
@@ -190,7 +371,7 @@ function PharmacyDetailPage() {
 
                 <div className="wide-prescription-note">
                   <span>Aturan Pakai</span>
-                  <strong>{item.instruction || '-'}</strong>
+                  <strong>{displayValue(item.instruction)}</strong>
                 </div>
               </article>
             ))}

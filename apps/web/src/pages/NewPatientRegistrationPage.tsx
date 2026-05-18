@@ -1,6 +1,7 @@
-import { FormEvent, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import { Link } from 'react-router'
-import { saveRegistration } from '../lib/registrationStorage'
+import { api } from '../lib/api'
 
 const guarantorOptions = [
   'Umum',
@@ -38,6 +39,42 @@ type PatientForm = {
   initialComplaint: string
 }
 
+type ClinicApiResponse = {
+  id: string
+  code: string
+  name: string
+}
+
+type PatientApiResponse = {
+  id: string
+  medicalRecordNo: string
+  fullName: string
+}
+
+type RegistrationApiResponse = {
+  id: string
+  registrationNo: string
+  queueNumber: number
+  patient: PatientApiResponse
+  clinic: ClinicApiResponse
+}
+
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+function generateMedicalRecordNo() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const suffix = String(now.getTime()).slice(-6)
+
+  return `RM-${year}-${suffix}`
+}
+
 const initialForm: PatientForm = {
   nik: '',
   fullName: '',
@@ -62,6 +99,10 @@ const initialForm: PatientForm = {
 function NewPatientRegistrationPage() {
   const [form, setForm] = useState<PatientForm>(initialForm)
   const [isSaved, setIsSaved] = useState(false)
+  const [, setIsSaving] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [savedRegistration, setSavedRegistration] =
+    useState<RegistrationApiResponse | null>(null)
   const [showValidation, setShowValidation] = useState(false)
 
   const updateField = <K extends keyof PatientForm>(
@@ -75,6 +116,11 @@ function NewPatientRegistrationPage() {
 
     if (isSaved) {
       setIsSaved(false)
+      setSavedRegistration(null)
+    }
+
+    if (submitError) {
+      setSubmitError('')
     }
   }
 
@@ -117,53 +163,94 @@ function NewPatientRegistrationPage() {
     }
   }, [form])
 
-  const generatedRecordNumber = isSaved
-    ? 'RM-2026-0001'
-    : completion.identityComplete
-      ? 'RM-PREVIEW-2026'
-      : 'RM-NEW-AUTO'
+  const generatedRecordNumber =
+    savedRegistration?.patient.medicalRecordNo ??
+    (completion.identityComplete ? 'RM-AUTO-BACKEND' : 'RM-NEW-AUTO')
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setShowValidation(true)
+    setSubmitError('')
 
     if (!completion.allComplete) {
       setIsSaved(false)
       return
     }
 
-    const newRegistration = {
-      id: `demo-${Date.now()}`,
-      rm: 'RM-2026-0001',
-      patient: form.fullName,
-      nik: form.nik,
-      service: form.destination,
-      type: form.patientStatus === 'rujukan' ? 'Pasien Rujukan' : 'Pasien Baru',
-      queue: form.destination === 'IGD' ? 'IGD-012' : 'NEW-001',
-      status: 'Menunggu' as const,
-      phone: form.phone,
-      email: form.email,
-      guarantor: form.guarantor,
-      guarantorNumber: form.guarantorNumber,
-      birthPlace: form.birthPlace,
-      birthDate: form.birthDate,
-      gender: form.gender === 'L' ? 'Laki-laki' : 'Perempuan',
-      address: form.address,
-      district: form.district,
-      city: form.city,
-      visitType: form.visitType,
-      initialComplaint: form.initialComplaint,
-      createdAt: new Date().toISOString(),
-    }
+    setIsSaving(true)
 
-    saveRegistration(newRegistration)
-    setIsSaved(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    try {
+      const clinics = await api.get<ClinicApiResponse[]>('/clinics')
+      const selectedClinic = clinics.find(
+        (clinic) => clinic.name === form.destination,
+      )
+
+      if (!selectedClinic) {
+        throw new Error(
+          `Tujuan layanan "${form.destination}" belum tersedia di backend.`,
+        )
+      }
+
+      const patient = await api.post<
+        PatientApiResponse,
+        {
+          medicalRecordNo: string
+          nationalId: string
+          fullName: string
+          gender: 'MALE' | 'FEMALE'
+          birthDate: string
+          phone: string
+          address: string
+        }
+      >('/patients', {
+        medicalRecordNo: generateMedicalRecordNo(),
+        nationalId: form.nik,
+        fullName: form.fullName,
+        gender: form.gender === 'L' ? 'MALE' : 'FEMALE',
+        birthDate: form.birthDate,
+        phone: form.phone,
+        address: `${form.address}, ${form.district}, ${form.city}`,
+      })
+
+      const registration = await api.post<
+        RegistrationApiResponse,
+        {
+          visitDate: string
+          chiefComplaint: string
+          patientId: string
+          clinicId: string
+        }
+      >('/registrations', {
+        visitDate: formatLocalDate(new Date()),
+        chiefComplaint: form.initialComplaint,
+        patientId: patient.id,
+        clinicId: selectedClinic.id,
+      })
+
+      setSavedRegistration(registration)
+      setIsSaved(true)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Registrasi gagal disimpan ke backend.'
+
+      setIsSaved(false)
+      setSavedRegistration(null)
+      setSubmitError(message)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const resetForm = () => {
     setForm(initialForm)
     setIsSaved(false)
+    setIsSaving(false)
+    setSubmitError('')
+    setSavedRegistration(null)
     setShowValidation(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -215,11 +302,13 @@ function NewPatientRegistrationPage() {
 
           <div className="registration-stage-card">
             <span>Status Form</span>
-            <strong>{isSaved ? 'Registrasi Tersimpan' : 'Draft Registrasi'}</strong>
+            <strong>
+              {isSaved ? 'Registrasi Tersimpan' : 'Draft Registrasi'}
+            </strong>
             <p>
               {isSaved
-                ? 'Data berhasil disimpan sebagai demo'
-                : 'Belum tersimpan ke database'}
+                ? 'Data berhasil tersimpan ke backend SIMRS'
+                : 'Belum tersimpan ke backend'}
             </p>
           </div>
         </header>
@@ -227,16 +316,23 @@ function NewPatientRegistrationPage() {
         {isSaved && (
           <section className="registration-success-banner">
             <div>
-              <small>Registrasi Demo Berhasil</small>
+              <small>Registrasi Berhasil</small>
               <strong>{form.fullName || 'Pasien Baru'} berhasil didaftarkan</strong>
               <p>
-                Nomor rekam medis demo telah dibentuk dengan nomor{' '}
-                <b>{generatedRecordNumber}</b>. Pada tahap backend nanti, data ini
-                akan tersimpan ke database dan masuk antrean layanan.
+                Nomor rekam medis <b>{generatedRecordNumber}</b>, nomor kunjungan{' '}
+                <b>{savedRegistration?.registrationNo}</b>, dan antrean{' '}
+                <b>{savedRegistration?.queueNumber}</b> telah dibentuk oleh backend.
               </p>
             </div>
 
             <Link to="/pendaftaran">Kembali ke Daftar Pendaftaran</Link>
+          </section>
+        )}
+
+        {submitError && (
+          <section className="registration-warning-banner">
+            <strong>Registrasi belum tersimpan.</strong>
+            <span>{submitError}</span>
           </section>
         )}
 

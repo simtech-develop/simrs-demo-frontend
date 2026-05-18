@@ -1,39 +1,177 @@
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { getRegistrations } from '../lib/registrationStorage'
-import {
-  ensureEmergencyAssessment,
-  getEmergencyAssessmentByRegistrationId,
-} from '../lib/emergencyStorage'
+import { api } from '../lib/api'
+
+type ApiRegistration = {
+  id: string
+  registrationNo: string
+  queueNumber: number
+  chiefComplaint?: string | null
+  patient: {
+    id: string
+    medicalRecordNo: string
+    fullName: string
+  }
+  clinic: {
+    id: string
+    code: string
+    name: string
+  }
+}
+
+type EmergencyTriageApi = 'RED' | 'YELLOW' | 'GREEN'
+
+type EmergencyAssessmentStatusApi =
+  | 'WAITING_TRIAGE'
+  | 'IN_ASSESSMENT'
+  | 'TRIAGE_COMPLETED'
+
+type ApiEmergencyAssessment = {
+  id: string
+  registrationId: string
+  triageLevel: EmergencyTriageApi
+  chiefComplaint?: string | null
+  consciousness?: string | null
+  bloodPressure?: string | null
+  pulse?: string | null
+  respiratoryRate?: string | null
+  oxygenSaturation?: string | null
+  emergencyNote?: string | null
+  status: EmergencyAssessmentStatusApi
+  assessedAt?: string | null
+}
+
+type EmergencyRow = {
+  registrationId: string
+  rm: string
+  patient: string
+  queue: string
+  triageLevel: 'Merah' | 'Kuning' | 'Hijau'
+  status: 'Menunggu Triage' | 'Dalam Asesmen' | 'Triage Selesai'
+}
+
+function mapTriageLevel(level: EmergencyTriageApi): EmergencyRow['triageLevel'] {
+  switch (level) {
+    case 'RED':
+      return 'Merah'
+    case 'YELLOW':
+      return 'Kuning'
+    case 'GREEN':
+      return 'Hijau'
+    default:
+      return 'Hijau'
+  }
+}
+
+function mapAssessmentStatus(
+  status: EmergencyAssessmentStatusApi,
+): EmergencyRow['status'] {
+  switch (status) {
+    case 'WAITING_TRIAGE':
+      return 'Menunggu Triage'
+    case 'IN_ASSESSMENT':
+      return 'Dalam Asesmen'
+    case 'TRIAGE_COMPLETED':
+      return 'Triage Selesai'
+    default:
+      return 'Menunggu Triage'
+  }
+}
+
+async function ensureEmergencyAssessment(registration: ApiRegistration) {
+  try {
+    return await api.get<ApiEmergencyAssessment>(
+      `/emergency-assessments/registration/${registration.id}`,
+    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+
+    if (!message.toLowerCase().includes('not found')) {
+      throw error
+    }
+  }
+
+  return api.post<
+    ApiEmergencyAssessment,
+    {
+      registrationId: string
+      chiefComplaint?: string
+    }
+  >('/emergency-assessments', {
+    registrationId: registration.id,
+    chiefComplaint: registration.chiefComplaint ?? undefined,
+  })
+}
 
 function EmergencyPage() {
-  const registrations = getRegistrations()
+  const [emergencyPatients, setEmergencyPatients] = useState<EmergencyRow[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
-  const emergencyPatients = registrations
-    .filter((item) => item.service === 'IGD')
-    .map((registration) => {
-      const assessment =
-        getEmergencyAssessmentByRegistrationId(registration.id) ??
-        ensureEmergencyAssessment(registration.id)
+  const loadEmergencyPatients = async () => {
+    setIsLoading(true)
+    setLoadError('')
 
-      return {
-        registration,
-        assessment,
-      }
-    })
+    try {
+      const registrations = await api.get<ApiRegistration[]>('/registrations')
+
+      const igdRegistrations = registrations.filter(
+        (registration) => registration.clinic.code === 'IGD',
+      )
+
+      const rows = await Promise.all(
+        igdRegistrations.map(async (registration) => {
+          const assessment = await ensureEmergencyAssessment(registration)
+
+          return {
+            registrationId: registration.id,
+            rm: registration.patient.medicalRecordNo,
+            patient: registration.patient.fullName,
+            queue: `IGD-${String(registration.queueNumber).padStart(3, '0')}`,
+            triageLevel: mapTriageLevel(assessment.triageLevel),
+            status: mapAssessmentStatus(assessment.status),
+          }
+        }),
+      )
+
+      setEmergencyPatients(rows)
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Gagal memuat antrean pasien IGD dari backend.'
+
+      setEmergencyPatients([])
+      setLoadError(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadEmergencyPatients()
+  }, [])
 
   const totalPatients = emergencyPatients.length
 
-  const redPriority = emergencyPatients.filter(
-    (item) => item.assessment.triageLevel === 'Merah',
-  ).length
+  const redPriority = useMemo(
+    () =>
+      emergencyPatients.filter((item) => item.triageLevel === 'Merah').length,
+    [emergencyPatients],
+  )
 
-  const yellowPriority = emergencyPatients.filter(
-    (item) => item.assessment.triageLevel === 'Kuning',
-  ).length
+  const yellowPriority = useMemo(
+    () =>
+      emergencyPatients.filter((item) => item.triageLevel === 'Kuning').length,
+    [emergencyPatients],
+  )
 
-  const waitingTriage = emergencyPatients.filter(
-    (item) => item.assessment.status !== 'Triage Selesai',
-  ).length
+  const waitingTriage = useMemo(
+    () =>
+      emergencyPatients.filter((item) => item.status !== 'Triage Selesai')
+        .length,
+    [emergencyPatients],
+  )
 
   return (
     <main className="emergency-app">
@@ -79,15 +217,22 @@ function EmergencyPage() {
           <div className="emergency-status-card">
             <span>Status Modul</span>
             <strong>Aktif</strong>
-            <p>Triage & asesmen awal</p>
+            <p>Backend Integrated</p>
           </div>
         </header>
+
+        {loadError && (
+          <section className="registration-warning-banner">
+            <strong>Antrean IGD belum dapat dimuat.</strong>
+            <span>{loadError}</span>
+          </section>
+        )}
 
         <section className="emergency-stat-grid">
           <article className="emergency-stat-card">
             <span>Pasien Masuk IGD</span>
             <strong>{totalPatients}</strong>
-            <small>Data registrasi terhubung</small>
+            <small>Data registrasi backend</small>
           </article>
 
           <article className="emergency-stat-card red-stat">
@@ -130,49 +275,58 @@ function EmergencyPage() {
                 </thead>
 
                 <tbody>
-                  {emergencyPatients.length === 0 ? (
+                  {isLoading && (
+                    <tr>
+                      <td colSpan={6} className="empty-table-state">
+                        Memuat pasien IGD dari backend...
+                      </td>
+                    </tr>
+                  )}
+
+                  {!isLoading && emergencyPatients.length === 0 && (
                     <tr>
                       <td colSpan={6} className="empty-table-state">
                         Belum ada pasien yang masuk ke layanan IGD.
                       </td>
                     </tr>
-                  ) : (
-                    emergencyPatients.map(({ registration, assessment }) => (
-                      <tr key={registration.id}>
-                        <td>{registration.rm}</td>
-                        <td>{registration.patient}</td>
-                        <td>{registration.queue}</td>
+                  )}
+
+                  {!isLoading &&
+                    emergencyPatients.map((row) => (
+                      <tr key={row.registrationId}>
+                        <td>{row.rm}</td>
+                        <td>{row.patient}</td>
+                        <td>{row.queue}</td>
                         <td>
                           <span
-                            className={`triage-pill ${assessment.triageLevel.toLowerCase()}`}
+                            className={`triage-pill ${row.triageLevel.toLowerCase()}`}
                           >
-                            {assessment.triageLevel}
+                            {row.triageLevel}
                           </span>
                         </td>
                         <td>
                           <span
                             className={`emergency-status-pill ${
-                              assessment.status === 'Dalam Asesmen'
+                              row.status === 'Dalam Asesmen'
                                 ? 'assessing'
-                                : assessment.status === 'Triage Selesai'
+                                : row.status === 'Triage Selesai'
                                   ? 'completed'
                                   : ''
                             }`}
                           >
-                            {assessment.status}
+                            {row.status}
                           </span>
                         </td>
                         <td>
                           <Link
                             className="detail-registration-link"
-                            to={`/igd/asesmen/${registration.id}`}
+                            to={`/igd/asesmen/${row.registrationId}`}
                           >
                             Mulai Asesmen
                           </Link>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    ))}
                 </tbody>
               </table>
             </div>

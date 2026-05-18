@@ -1,0 +1,261 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  REGISTRATION
+  DOCTOR
+  CASHIER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum RegistrationStatus {
+  WAITING
+  IN_SERVICE
+  COMPLETED
+  CANCELED
+}
+
+
+enum PharmacyOrderStatus {
+  PENDING
+  PROCESSING
+  READY
+  COMPLETED
+  CANCELED
+}
+
+
+enum CashierBillStatus {
+  UNPAID
+  PAID
+  CANCELED
+}
+
+
+enum EmergencyTriageLevel {
+  RED
+  YELLOW
+  GREEN
+}
+
+enum EmergencyAssessmentStatus {
+  WAITING_TRIAGE
+  IN_ASSESSMENT
+  TRIAGE_COMPLETED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  fullName     String
+  username     String   @unique
+  email        String?  @unique
+  passwordHash String
+  role         UserRole @default(REGISTRATION)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  doctorProfile Doctor?
+}
+
+model Clinic {
+  id            String         @id @default(cuid())
+  code          String         @unique
+  name          String
+  description   String?
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  doctors       Doctor[]
+  registrations Registration[]
+}
+
+model Doctor {
+  id            String    @id @default(cuid())
+  doctorCode    String    @unique
+  fullName      String
+  specialization String?
+  sipNumber     String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  clinicId      String?
+  clinic        Clinic?   @relation(fields: [clinicId], references: [id], onDelete: SetNull)
+
+  userId        String?   @unique
+  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  registrations Registration[]
+}
+
+model Patient {
+  id              String         @id @default(cuid())
+  medicalRecordNo String         @unique
+  nationalId      String?        @unique
+  fullName        String
+  gender          Gender
+  birthDate       DateTime
+  phone           String?
+  address         String?
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  registrations   Registration[]
+}
+
+model Registration {
+  id                String             @id @default(cuid())
+  registrationNo    String             @unique
+  visitDate         DateTime
+  queueNumber       Int
+  chiefComplaint    String?
+  status            RegistrationStatus @default(WAITING)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  patientId         String
+  patient           Patient            @relation(fields: [patientId], references: [id], onDelete: Restrict)
+
+  clinicId          String
+  clinic            Clinic             @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+
+  doctorId          String?
+  doctor            Doctor?            @relation(fields: [doctorId], references: [id], onDelete: SetNull)
+
+  medicalRecord        MedicalRecord?
+  pharmacyOrder        PharmacyOrder?
+  cashierBill          CashierBill?
+  emergencyAssessment  EmergencyAssessment?
+
+  @@index([visitDate])
+  @@index([clinicId, visitDate])
+  @@index([patientId])
+  @@unique([clinicId, visitDate, queueNumber])
+}
+
+
+model MedicalRecord {
+  id                     String       @id @default(cuid())
+  anamnesis              String?
+  physicalExamination    String?
+  diagnosis              String?
+  treatmentPlan          String?
+  prescriptionNote       String?
+  examinedAt             DateTime     @default(now())
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  registrationId         String       @unique
+  registration           Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([registrationId])
+}
+
+
+model PharmacyOrder {
+  id              String              @id @default(cuid())
+  status          PharmacyOrderStatus @default(PENDING)
+  note            String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  registrationId  String              @unique
+  registration    Registration        @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  items           PharmacyOrderItem[]
+
+  @@index([registrationId])
+  @@index([status])
+}
+
+model PharmacyOrderItem {
+  id              String        @id @default(cuid())
+  medicineName    String
+  dosage          String
+  frequency       String
+  quantity        String
+  instruction     String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  pharmacyOrderId String
+  pharmacyOrder   PharmacyOrder @relation(fields: [pharmacyOrderId], references: [id], onDelete: Cascade)
+
+  @@index([pharmacyOrderId])
+}
+
+
+model CashierBill {
+  id              String            @id @default(cuid())
+  billNo          String            @unique
+  status          CashierBillStatus @default(UNPAID)
+  totalAmount     Int
+  paidAmount      Int               @default(0)
+  note            String?
+  paidAt          DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  registrationId  String            @unique
+  registration    Registration      @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  items           CashierBillItem[]
+
+  @@index([registrationId])
+  @@index([status])
+}
+
+model CashierBillItem {
+  id              String      @id @default(cuid())
+  itemName        String
+  itemType        String
+  quantity        Int         @default(1)
+  unitPrice       Int
+  subtotal        Int
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  cashierBillId   String
+  cashierBill     CashierBill @relation(fields: [cashierBillId], references: [id], onDelete: Cascade)
+
+  @@index([cashierBillId])
+}
+
+
+model EmergencyAssessment {
+  id                    String                    @id @default(cuid())
+  triageLevel           EmergencyTriageLevel      @default(GREEN)
+  chiefComplaint        String?
+  consciousness         String?
+  bloodPressure         String?
+  pulse                 String?
+  respiratoryRate       String?
+  oxygenSaturation      String?
+  emergencyNote         String?
+  status                EmergencyAssessmentStatus @default(WAITING_TRIAGE)
+  assessedAt            DateTime?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  registrationId        String                    @unique
+  registration          Registration              @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([registrationId])
+  @@index([triageLevel])
+  @@index([status])
+}

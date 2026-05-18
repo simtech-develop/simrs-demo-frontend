@@ -18,9 +18,8 @@ import ReportPage from './pages/ReportPage'
 import EmergencyPage from './pages/EmergencyPage'
 import EmergencyAssessmentPage from './pages/EmergencyAssessmentPage'
 import EmergencyMedicalRecordDetailPage from './pages/EmergencyMedicalRecordDetailPage'
-import EmergencyPage from './pages/EmergencyPage'
-import EmergencyAssessmentPage from './pages/EmergencyAssessmentPage'
-import EmergencyMedicalRecordDetailPage from './pages/EmergencyMedicalRecordDetailPage'
+
+
 
 function App() {
   return (
@@ -52,7 +51,7 @@ function App() {
       <Route path="/laporan" element={<ReportPage />} />
       <Route path="/igd" element={<EmergencyPage />} />
       <Route path="/igd/asesmen/:id" element={<EmergencyAssessmentPage />} />
-      <Route path="/igd" element={<EmergencyPage />} />
+     
       <Route path="/igd/asesmen/:id" element={<EmergencyAssessmentPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
