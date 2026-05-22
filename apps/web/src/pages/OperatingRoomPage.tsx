@@ -311,7 +311,16 @@ function OperatingRoomPage() {
       decision: postActionDecision,
       guarantor: paymentGuarantor,
       nextPath: postActionFlow.targetPath,
-      items: costItems,
+      items: costItems.map((item) => ({
+        source:
+          item.category === 'Obat'
+            ? 'Farmasi'
+            : 'Ruang Tindakan / OK',
+        category: item.category,
+        itemName: item.itemName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+      })),
       total: totalOperatingCost,
       savedAt: new Date().toISOString(),
     }
