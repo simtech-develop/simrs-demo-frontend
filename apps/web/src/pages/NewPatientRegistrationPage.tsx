@@ -242,9 +242,9 @@ const guarantorOptions = [
   'Perusahaan',
 ]
 
-const dummyBpjsPatients = [
+const registeredPatientSamples = [
   {
-    label: 'BPJS - Ujang / Kelas II',
+    label: 'Ujang / RM-2026-821518',
     nik: '5634563456345635',
     fullName: 'Ujang',
     birthPlace: 'Cianjur',
@@ -265,7 +265,7 @@ const dummyBpjsPatients = [
     initialComplaint: 'Pemeriksaan pertama',
   },
   {
-    label: 'BPJS - Slamet Riyadi / IGD',
+    label: 'Slamet Riyadi / RM-IGD-0001',
     nik: '3275010101010001',
     fullName: 'Slamet Riyadi',
     birthPlace: 'Bandung',
@@ -286,7 +286,7 @@ const dummyBpjsPatients = [
     initialComplaint: 'Demam tinggi dan lemas sejak pagi',
   },
   {
-    label: 'BPJS - Jamilah / Penyakit Dalam',
+    label: 'Jamilah / RM-2026-972426',
     nik: '2435624362436426',
     fullName: 'Jamilah',
     birthPlace: 'Garut',
@@ -574,32 +574,32 @@ function NewPatientRegistrationPage() {
     }
   }
 
-  const applyDummyBpjsPatient = (dummyPatient: typeof dummyBpjsPatients[number]) => {
+  const applyRegisteredPatient = (registeredPatient: typeof registeredPatientSamples[number]) => {
     setForm((currentForm) => ({
       ...currentForm,
-      nik: dummyPatient.nik,
-      fullName: dummyPatient.fullName,
-      birthPlace: dummyPatient.birthPlace,
-      birthDate: dummyPatient.birthDate,
-      gender: dummyPatient.gender,
-      maritalStatus: dummyPatient.maritalStatus,
-      phone: dummyPatient.phone,
-      email: dummyPatient.email,
-      address: dummyPatient.address,
-      district: dummyPatient.district,
-      city: dummyPatient.city,
-      guarantor: dummyPatient.guarantor,
-      guarantorNumber: dummyPatient.guarantorNumber,
-      careClass: dummyPatient.careClass,
-      patientStatus: dummyPatient.patientStatus,
-      destination: dummyPatient.destination,
-      visitType: dummyPatient.visitType,
-      initialComplaint: dummyPatient.initialComplaint,
+      nik: registeredPatient.nik,
+      fullName: registeredPatient.fullName,
+      birthPlace: registeredPatient.birthPlace,
+      birthDate: registeredPatient.birthDate,
+      gender: registeredPatient.gender,
+      maritalStatus: registeredPatient.maritalStatus,
+      phone: registeredPatient.phone,
+      email: registeredPatient.email,
+      address: registeredPatient.address,
+      district: registeredPatient.district,
+      city: registeredPatient.city,
+      guarantor: registeredPatient.guarantor,
+      guarantorNumber: registeredPatient.guarantorNumber,
+      careClass: registeredPatient.careClass,
+      patientStatus: registeredPatient.patientStatus,
+      destination: registeredPatient.destination,
+      visitType: registeredPatient.visitType,
+      initialComplaint: registeredPatient.initialComplaint,
     }))
 
-    setSelectedService(dummyPatient.destination)
-    setSelectedDoctor(getDefaultDoctorName(dummyPatient.destination))
-    setBirthDateDisplay(formatDateToDDMMYYYY(dummyPatient.birthDate))
+    setSelectedService(registeredPatient.destination)
+    setSelectedDoctor(getDefaultDoctorName(registeredPatient.destination))
+    setBirthDateDisplay(formatDateToDDMMYYYY(registeredPatient.birthDate))
     setIsSaved(false)
     setSubmitError('')
   }
@@ -1006,31 +1006,29 @@ function NewPatientRegistrationPage() {
               <div className="patient-form-title">
                 <small>03. Administrasi Pasien</small>
                 <h2>Penjamin & Kepesertaan</h2>
+              <p className="section-helper-text">
+                Kepesertaan dibuat saat registrasi. Pilih Umum, BPJS,
+                Asuransi, atau Perusahaan, lalu isi nomor kartu penjamin bila tersedia.
+              </p>
               </div>
 
               <div className="form-grid two-columns">
               <div className="dummy-bpjs-panel">
-                <div>
-                  <strong>Dummy Data BPJS</strong>
-                  <span>
-                    Gunakan data simulasi untuk demo pendaftaran pasien BPJS.
-                  </span>
-                </div>
 
                 <select
                   defaultValue=""
                   onChange={(event) => {
-                    const selectedDummy = dummyBpjsPatients.find(
+                    const selectedDummy = registeredPatientSamples.find(
                       (patient) => patient.guarantorNumber === event.target.value,
                     )
 
                     if (selectedDummy) {
-                      applyDummyBpjsPatient(selectedDummy)
+                      applyRegisteredPatient(selectedDummy)
                     }
                   }}
                 >
-                  <option value="">Pilih dummy pasien BPJS</option>
-                  {dummyBpjsPatients.map((patient) => (
+                  <option value="">Cari / pilih pasien yang sudah ada</option>
+                  {registeredPatientSamples.map((patient) => (
                     <option
                       value={patient.guarantorNumber}
                       key={patient.guarantorNumber}
