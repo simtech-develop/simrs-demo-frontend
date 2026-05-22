@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
+import { readStorage } from '../services/simrsStorage'
+import { simrsStorageKeys } from '../services/simrsStorageKeys'
 import { api } from '../lib/api'
-
-const outpatientExamStorageKey = 'simrs_outpatient_exam_demo'
 
 type ApiMedicalRecord = {
   id: string
@@ -111,13 +111,13 @@ type LocalOutpatientExamRecord = {
 
 const readFallbackOutpatientExamRecords = (): MedicalRecordRow[] => {
   try {
-    const rawValue = window.localStorage.getItem(outpatientExamStorageKey)
+    const record = readStorage<LocalOutpatientExamRecord>(
+      simrsStorageKeys.outpatientExam,
+    )
 
-    if (!rawValue) {
+    if (!record) {
       return []
     }
-
-    const record = JSON.parse(rawValue) as LocalOutpatientExamRecord
     const summary =
       record.diagnosis && record.diagnosis.trim() !== ''
         ? record.diagnosis
