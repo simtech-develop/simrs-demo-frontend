@@ -6538,3 +6538,311 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Operating room billing */
+.operating-billing-panel {
+  margin-top: 18px;
+}
+
+.operating-billing-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.operating-billing-toolbar button {
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.14);
+  color: #bae6fd;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 10px 14px;
+}
+
+.operating-cost-list {
+  display: grid;
+  gap: 14px;
+}
+
+.operating-cost-card {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.68);
+  padding: 16px;
+}
+
+.operating-cost-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.operating-cost-card-header strong {
+  color: #f8fafc;
+  font-size: 16px;
+}
+
+.operating-cost-card-header button {
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 7px 12px;
+}
+
+.operating-cost-subtotal {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  padding-top: 12px;
+}
+
+.operating-cost-subtotal span {
+  color: #94a3b8;
+}
+
+.operating-cost-subtotal strong {
+  color: #7dd3fc;
+}
+
+.operating-billing-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  border: 1px solid rgba(34, 197, 94, 0.32);
+  border-radius: 18px;
+  background: rgba(22, 163, 74, 0.1);
+  padding: 18px;
+}
+
+.operating-billing-summary span {
+  display: block;
+  color: #86efac;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.operating-billing-summary strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+.operating-billing-summary p {
+  color: #bbf7d0;
+  margin: 0;
+}
+
+.operating-billing-summary button {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #f0fdf4;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 12px 18px;
+}
+
+@media (max-width: 768px) {
+  .operating-billing-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .operating-billing-summary button {
+    width: 100%;
+  }
+}
+
+/* Hospital tariff helper */
+.tariff-helper-text {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 6px;
+}
+
+/* Post operating action decision */
+.post-action-decision-panel {
+  margin-top: 18px;
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.post-action-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.post-action-result-card {
+  margin-top: 16px;
+  border: 1px solid rgba(34, 197, 94, 0.32);
+  border-radius: 18px;
+  background: rgba(22, 163, 74, 0.1);
+  padding: 18px;
+}
+
+.post-action-result-card small {
+  display: block;
+  color: #86efac;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.post-action-result-card h3 {
+  color: #f0fdf4;
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+
+.post-action-result-card p {
+  color: #bbf7d0;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+.post-action-result-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.post-action-result-meta div {
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.55);
+  padding: 12px;
+}
+
+.post-action-result-meta span {
+  display: block;
+  color: #86efac;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.post-action-result-meta strong {
+  color: #f8fafc;
+}
+
+.post-action-primary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 220px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #f0fdf4;
+  font-weight: 900;
+  padding: 12px 18px;
+  text-decoration: none;
+}
+
+.post-action-primary-link:hover {
+  color: #ffffff;
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  .post-action-form-grid,
+  .post-action-result-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Post action proportional choice buttons */
+.post-action-choice-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.post-action-choice-group {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.58);
+  padding: 16px;
+}
+
+.post-action-choice-group > span {
+  display: block;
+  color: #94a3b8;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.post-action-button-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.post-action-button-group.guarantor {
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+}
+
+.post-action-button-group button {
+  min-height: 48px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.52);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 12px 14px;
+  text-align: center;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.post-action-button-group button:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(14, 165, 233, 0.12);
+  color: #e0f2fe;
+  transform: translateY(-1px);
+}
+
+.post-action-button-group button.active {
+  border-color: rgba(34, 197, 94, 0.62);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.24), rgba(14, 165, 233, 0.18));
+  color: #f0fdf4;
+  box-shadow: 0 14px 30px rgba(34, 197, 94, 0.12);
+}
+
+@media (max-width: 1100px) {
+  .post-action-choice-wrapper {
+    grid-template-columns: 1fr;
+  }
+
+  .post-action-button-group.guarantor {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .post-action-button-group {
+    grid-template-columns: 1fr;
+  }
+}

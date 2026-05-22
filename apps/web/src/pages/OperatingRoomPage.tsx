@@ -1,6 +1,44 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 
+type PostActionDecision = 'Pulang Setelah Tindakan' | 'Setuju Rawat Inap'
+
+type PaymentGuarantor = 'Umum' | 'BPJS' | 'Asuransi Lain'
+
+const getPostActionFlow = (
+  decision: PostActionDecision,
+  guarantor: PaymentGuarantor,
+) => {
+  if (decision === 'Setuju Rawat Inap') {
+    return {
+      title: 'Lanjut ke Rawat Inap',
+      description:
+        guarantor === 'BPJS'
+          ? 'Keluarga menyetujui rawat inap. Siapkan admisi rawat inap, validasi SEP/BPJS, kelas perawatan, dan DPJP.'
+          : guarantor === 'Asuransi Lain'
+            ? 'Keluarga menyetujui rawat inap. Siapkan admisi rawat inap, validasi penjamin/asuransi, kelas perawatan, dan DPJP.'
+            : 'Keluarga menyetujui rawat inap. Siapkan admisi rawat inap, kelas perawatan, DPJP, dan estimasi biaya mandiri.',
+      actionLabel: 'Lanjut ke Rawat Inap',
+      targetPath: '/rawat-inap',
+      status: 'Admission Rawat Inap',
+    }
+  }
+
+  return {
+    title: 'Lanjut ke Pembayaran Kasir',
+    description:
+      guarantor === 'BPJS'
+        ? 'Keluarga memilih pulang setelah tindakan. Validasi penjamin BPJS dan proses administrasi sesuai ketentuan klaim/biaya layanan.'
+        : guarantor === 'Asuransi Lain'
+          ? 'Keluarga memilih pulang setelah tindakan. Validasi kartu/polis asuransi dan teruskan tagihan ke kasir.'
+          : 'Keluarga memilih pulang setelah tindakan. Tagihan tindakan, obat, dan alat kesehatan diteruskan ke kasir untuk pembayaran mandiri.',
+    actionLabel: 'Lanjut Pembayaran Kasir',
+    targetPath: '/kasir',
+    status: 'Pembayaran Kasir',
+  }
+}
+
+
 type OperatingCostCategory =
   | 'Tindakan Dokter'
   | 'Obat'
@@ -146,6 +184,15 @@ const formatCurrency = (value: number) =>
 
 
 function OperatingRoomPage() {
+  const [postActionDecision, setPostActionDecision] =
+    useState<PostActionDecision>('Pulang Setelah Tindakan')
+  const [paymentGuarantor, setPaymentGuarantor] =
+    useState<PaymentGuarantor>('Umum')
+  const postActionFlow = getPostActionFlow(
+    postActionDecision,
+    paymentGuarantor,
+  )
+
   const [costItems, setCostItems] = useState<OperatingCostItem[]>(
     initialOperatingCostItems,
   )
@@ -241,7 +288,10 @@ function OperatingRoomPage() {
     const billingPayload = {
       sourceModule: 'Ruang Tindakan / Operasi',
       patientPriority: 'Merah',
-      status: 'Draft Tagihan Kasir',
+      status: postActionFlow.status,
+      decision: postActionDecision,
+      guarantor: paymentGuarantor,
+      nextPath: postActionFlow.targetPath,
       items: costItems,
       total: totalOperatingCost,
       savedAt: new Date().toISOString(),
@@ -506,6 +556,87 @@ function OperatingRoomPage() {
             <button type="button" onClick={saveOperatingBilling}>
               Simpan Draft Tagihan Kasir
             </button>
+          </div>
+        </section>
+
+
+        <section className="outpatient-panel post-action-decision-panel">
+          <div className="outpatient-panel-title">
+            <small>Keputusan Keluarga</small>
+            <h2>Alur Setelah Tindakan</h2>
+            <p>
+              Tentukan apakah pasien pulang setelah tindakan dan membayar di
+              kasir, atau keluarga menyetujui pasien lanjut rawat inap.
+            </p>
+          </div>
+
+          <div className="post-action-choice-wrapper">
+            <div className="post-action-choice-group">
+              <span>Keputusan Setelah Tindakan</span>
+              <div className="post-action-button-group">
+                {(['Pulang Setelah Tindakan', 'Setuju Rawat Inap'] as PostActionDecision[]).map(
+                  (decision) => (
+                    <button
+                      type="button"
+                      className={
+                        postActionDecision === decision ? 'active' : ''
+                      }
+                      onClick={() => setPostActionDecision(decision)}
+                      key={decision}
+                    >
+                      {decision}
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
+
+            <div className="post-action-choice-group">
+              <span>Penjamin / Cara Bayar</span>
+              <div className="post-action-button-group guarantor">
+                {(['Umum', 'BPJS', 'Asuransi Lain'] as PaymentGuarantor[]).map(
+                  (guarantor) => (
+                    <button
+                      type="button"
+                      className={paymentGuarantor === guarantor ? 'active' : ''}
+                      onClick={() => setPaymentGuarantor(guarantor)}
+                      key={guarantor}
+                    >
+                      {guarantor === 'Umum'
+                        ? 'Umum / Mandiri'
+                        : guarantor === 'BPJS'
+                          ? 'BPJS Kesehatan'
+                          : 'Asuransi Lain'}
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="post-action-result-card">
+            <small>ARAH LANJUTAN</small>
+            <h3>{postActionFlow.title}</h3>
+            <p>{postActionFlow.description}</p>
+
+            <div className="post-action-result-meta">
+              <div>
+                <span>Penjamin</span>
+                <strong>{paymentGuarantor}</strong>
+              </div>
+              <div>
+                <span>Total Draft Tagihan</span>
+                <strong>{formatCurrency(totalOperatingCost)}</strong>
+              </div>
+              <div>
+                <span>Status Tujuan</span>
+                <strong>{postActionFlow.status}</strong>
+              </div>
+            </div>
+
+            <Link className="post-action-primary-link" to={postActionFlow.targetPath}>
+              {postActionFlow.actionLabel}
+            </Link>
           </div>
         </section>
 
