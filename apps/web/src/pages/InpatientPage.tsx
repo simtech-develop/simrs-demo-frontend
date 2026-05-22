@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
+import { writeStorage } from '../services/simrsStorage'
+import { simrsStorageKeys } from '../services/simrsStorageKeys'
 
 type InpatientGuarantor = 'Umum' | 'BPJS' | 'Asuransi Lain'
 
@@ -26,7 +28,7 @@ type InpatientDailyCareForm = {
   dischargeStatus: 'Belum Direncanakan' | 'Rencana Pulang' | 'Siap Pulang' | 'Batal Pulang'
 }
 
-const inpatientDailyCareStorageKey = 'simrs_inpatient_daily_care_demo'
+const inpatientDailyCareStorageKey = simrsStorageKeys.inpatientDailyCare
 
 const initialDailyCareForm: InpatientDailyCareForm = {
   nursingAssessment:
@@ -79,7 +81,7 @@ type InpatientAdmissionForm = {
   clinicalNote: string
 }
 
-const inpatientAdmissionStorageKey = 'simrs_inpatient_admission_demo'
+const inpatientAdmissionStorageKey = simrsStorageKeys.inpatientAdmission
 
 const initialAdmissionForm: InpatientAdmissionForm = {
   patientName: 'Romi',
@@ -174,10 +176,7 @@ function InpatientPage() {
       source: 'Rawat Inap',
     }
 
-    window.localStorage.setItem(
-      inpatientDailyCareStorageKey,
-      JSON.stringify(payload),
-    )
+    writeStorage(inpatientDailyCareStorageKey, payload)
 
     setIsDailyCareSaved(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -225,10 +224,7 @@ function InpatientPage() {
       source: 'Ruang Tindakan / IGD',
     }
 
-    window.localStorage.setItem(
-      inpatientAdmissionStorageKey,
-      JSON.stringify(payload),
-    )
+    writeStorage(inpatientAdmissionStorageKey, payload)
 
     setIsSaved(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
