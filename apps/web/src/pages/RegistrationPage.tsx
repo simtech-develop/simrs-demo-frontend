@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { api } from '../lib/api'
+import { readStorage, writeStorage } from '../services/simrsStorage'
+import { simrsStorageKeys } from '../services/simrsStorageKeys'
 
 const formatDateToDDMMYYYY = (value?: string | null) => {
   if (!value || value === '-') {
@@ -307,7 +309,7 @@ function normalizePayerType(
   return 'Umum'
 }
 
-const REGISTRATION_EDIT_STORAGE_KEY = 'simrs_registration_edit_overrides'
+const REGISTRATION_EDIT_STORAGE_KEY = simrsStorageKeys.registrationEditOverrides
 
 const saveRegistrationEditOverride = (registration: RegistrationRow) => {
   try {
@@ -331,15 +333,9 @@ const saveRegistrationEditOverride = (registration: RegistrationRow) => {
       currentOverrides[key] = registration
     })
 
-    window.localStorage.setItem(
-      REGISTRATION_EDIT_STORAGE_KEY,
-      JSON.stringify(currentOverrides),
-    )
+    writeStorage(REGISTRATION_EDIT_STORAGE_KEY, currentOverrides)
 
-    window.localStorage.setItem(
-      'simrs_last_registration_edit',
-      JSON.stringify(registration),
-    )
+    writeStorage(simrsStorageKeys.lastRegistrationEdit, registration)
   } catch (error) {
     console.error('Gagal menyimpan override edit registrasi:', error)
   }
@@ -399,18 +395,13 @@ const getRegistrationEditOverride = (
   }
 
   try {
-    const currentValue = window.localStorage.getItem(
+    const overrides = readStorage<Record<string, RegistrationRow>>(
       REGISTRATION_EDIT_STORAGE_KEY,
     )
 
-    if (!currentValue) {
+    if (!overrides) {
       return null
     }
-
-    const currentOverrides = JSON.parse(currentValue) as Record<
-      string,
-      RegistrationRow
-    >
 
     const candidateKeys = [
       registration.id,
@@ -421,8 +412,8 @@ const getRegistrationEditOverride = (
     ].filter((key): key is string => Boolean(key))
 
     for (const key of candidateKeys) {
-      if (currentOverrides[key]) {
-        return currentOverrides[key]
+      if (overrides[key]) {
+        return overrides[key]
       }
     }
 
@@ -755,10 +746,7 @@ function RegistrationPage() {
       }
     })
 
-    window.localStorage.setItem(
-      REGISTRATION_EDIT_STORAGE_KEY,
-      JSON.stringify(overrides),
-    )
+    writeStorage(REGISTRATION_EDIT_STORAGE_KEY, overrides)
   }, [registrations])
 
   const saveRegistrationEdit = () => {
