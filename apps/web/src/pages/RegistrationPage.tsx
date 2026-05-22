@@ -914,8 +914,8 @@ function RegistrationPage() {
                   <th>NIK</th>
                   <th>Tujuan Layanan</th>
                   <th>Dokter</th>
-                  <th>Jenis Kunjungan</th>
                   <th>Penjamin</th>
+                  <th>No. BPJS/Asuransi</th>
                   <th>Antrean</th>
                   <th>Status</th>
                   <th>Aksi</th>
@@ -942,9 +942,37 @@ function RegistrationPage() {
                       <td>{row.patient}</td>
                       <td>{row.nik}</td>
                       <td>{row.service}</td>
-                      <td>{row.doctor}</td>
-                      <td>{row.type}</td>
-                      <td>{row.payerType}</td>
+                      <td>
+                        <span className="registration-doctor-name">
+                          {row.doctor && row.doctor !== '-'
+                            ? row.doctor
+                            : 'Belum Ditentukan'}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`registration-payer-badge ${
+                            row.payerType === 'BPJS'
+                              ? 'bpjs'
+                              : row.payerType === 'Asuransi'
+                                ? 'insurance'
+                                : 'general'
+                          }`}
+                        >
+                          {row.payerType === 'BPJS'
+                            ? 'BPJS'
+                            : row.payerType === 'Asuransi'
+                              ? 'Asuransi'
+                              : 'Umum'}
+                        </span>
+                      </td>
+                      <td>
+                        {row.payerType === 'Umum'
+                          ? '-'
+                          : row.insuranceNo && row.insuranceNo !== '-'
+                            ? row.insuranceNo
+                            : 'Belum Diisi'}
+                      </td>
                       <td>{row.queue}</td>
                       <td>
                         <span
@@ -953,7 +981,9 @@ function RegistrationPage() {
                               ? 'waiting'
                               : row.status === 'Terverifikasi'
                                 ? 'verified'
-                                : 'served'
+                                : row.status === 'Dibatalkan'
+                                  ? 'canceled'
+                                  : 'served'
                           }`}
                         >
                           {row.status}

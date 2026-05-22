@@ -5786,3 +5786,56 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Registration table extended columns */
+.registration-doctor-name {
+  display: inline-block;
+  max-width: 180px;
+  color: #dbeafe;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.registration-payer-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.registration-payer-badge.general {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+}
+
+.registration-payer-badge.bpjs {
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.14);
+  color: #86efac;
+}
+
+.registration-payer-badge.insurance {
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd;
+}
+
+.registration-status.canceled {
+  background: rgba(239, 68, 68, 0.14);
+  color: #fca5a5;
+}
+
+.registration-table th:nth-child(5),
+.registration-table td:nth-child(5) {
+  min-width: 180px;
+}
+
+.registration-table th:nth-child(7),
+.registration-table td:nth-child(7) {
+  min-width: 150px;
+}
