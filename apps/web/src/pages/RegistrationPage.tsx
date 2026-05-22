@@ -9,22 +9,49 @@ const visitChannels = [
   'IGD',
 ]
 
-const doctorOptions = {
-  poli: [
+const doctorOptionsByService: Record<string, string[]> = {
+  'Poli Umum': [
     'dr. Andi Pratama',
     'dr. Rina Marlina',
-    'dr. Budi Santoso, Sp.PD',
-    'dr. Siti Rahma, Sp.A',
-    'dr. Agus Wijaya, Sp.B',
   ],
-  igd: [
+  'IGD': [
     'dr. Reza Firmansyah',
     'dr. Maya Lestari',
     'dr. Dimas Aditya',
   ],
+  'Poli Penyakit Dalam': [
+    'dr. Budi Santoso, Sp.PD',
+    'dr. Farhan Maulana, Sp.PD',
+  ],
+  'Poli Anak': [
+    'dr. Siti Rahma, Sp.A',
+    'dr. Nadia Paramitha, Sp.A',
+  ],
+  'Poli Bedah': [
+    'dr. Agus Wijaya, Sp.B',
+    'dr. Hendra Saputra, Sp.B',
+  ],
+  'Poli Kandungan': [
+    'dr. Rina Marlina, Sp.OG',
+    'dr. Dewi Kartika, Sp.OG',
+  ],
+  'Poli Gigi': [
+    'drg. Indah Permatasari',
+    'drg. Yoga Pratama',
+  ],
+  'Laboratorium': [
+    'dr. Fitri Handayani, Sp.PK',
+  ],
+  'Radiologi': [
+    'dr. Arif Nugroho, Sp.Rad',
+  ],
 }
 
-const allDoctorOptions = [...doctorOptions.poli, ...doctorOptions.igd]
+const getDoctorOptionsByService = (service: string) =>
+  doctorOptionsByService[service] ?? doctorOptionsByService['Poli Umum']
+
+const getDefaultDoctorName = (service: string) =>
+  getDoctorOptionsByService(service)[0] ?? '-'
 
 type ApiRegistrationStatus =
   | 'WAITING'
@@ -105,6 +132,7 @@ function mapStatus(status: ApiRegistrationStatus): RegistrationRow['status'] {
   }
 }
 
+
 function mapRegistration(item: ApiRegistration): RegistrationRow {
   const queuePrefix = item.clinic.code || 'Q'
 
@@ -114,7 +142,9 @@ function mapRegistration(item: ApiRegistration): RegistrationRow {
     patient: item.patient.fullName,
     nik: item.patient.nationalId ?? '-',
     service: item.clinic.name,
-    doctor: item.doctor?.fullName ?? '-',
+    doctor:
+      item.doctor?.fullName ??
+      getDefaultDoctorName(item.clinic.name),
     type: item.clinic.code === 'IGD' ? 'IGD' : 'Pasien Baru',
     payerType: 'Umum',
     insuranceNo: '-',
@@ -269,7 +299,10 @@ function RegistrationPage() {
       patient: patient?.fullName || registration.patient || '',
       nik: patient?.nationalId || registration.nik || '',
       service: detail?.clinic?.name || registration.service || 'Poli Umum',
-      doctor: detail?.doctor?.fullName || registration.doctor || '-',
+      doctor:
+        detail?.doctor?.fullName ||
+        registration.doctor ||
+        getDefaultDoctorName(detail?.clinic?.name || registration.service || 'Poli Umum'),
       type:
         detail?.clinic?.code === 'IGD'
           ? 'IGD'
@@ -435,10 +468,9 @@ function RegistrationPage() {
                     }
                   >
                     <option value="-">Belum Ditentukan</option>
-                    {((selectedRegistration?.service ?? '') === 'IGD'
-                      ? doctorOptions.igd
-                      : allDoctorOptions
-                    ).map((doctor) => (
+                    {getDoctorOptionsByService(
+                      selectedRegistration?.service ?? 'Poli Umum',
+                    ).map((doctor: string) => (
                       <option value={doctor} key={doctor}>
                         {doctor}
                       </option>
@@ -735,6 +767,7 @@ function RegistrationPage() {
                       setSelectedRegistration({
                         ...selectedRegistration,
                         service: event.target.value,
+                        doctor: getDefaultDoctorName(event.target.value),
                       })
                     }
                   >

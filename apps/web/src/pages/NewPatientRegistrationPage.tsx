@@ -3,6 +3,51 @@ import type { FormEvent } from 'react'
 import { Link } from 'react-router'
 import { api } from '../lib/api'
 
+const doctorOptionsByService: Record<string, string[]> = {
+  'Poli Umum': [
+    'dr. Andi Pratama',
+    'dr. Rina Marlina',
+  ],
+  'IGD': [
+    'dr. Reza Firmansyah',
+    'dr. Maya Lestari',
+    'dr. Dimas Aditya',
+  ],
+  'Poli Penyakit Dalam': [
+    'dr. Budi Santoso, Sp.PD',
+    'dr. Farhan Maulana, Sp.PD',
+  ],
+  'Poli Anak': [
+    'dr. Siti Rahma, Sp.A',
+    'dr. Nadia Paramitha, Sp.A',
+  ],
+  'Poli Bedah': [
+    'dr. Agus Wijaya, Sp.B',
+    'dr. Hendra Saputra, Sp.B',
+  ],
+  'Poli Kandungan': [
+    'dr. Rina Marlina, Sp.OG',
+    'dr. Dewi Kartika, Sp.OG',
+  ],
+  'Poli Gigi': [
+    'drg. Indah Permatasari',
+    'drg. Yoga Pratama',
+  ],
+  'Laboratorium': [
+    'dr. Fitri Handayani, Sp.PK',
+  ],
+  'Radiologi': [
+    'dr. Arif Nugroho, Sp.Rad',
+  ],
+}
+
+const getDoctorOptionsByService = (service: string) =>
+  doctorOptionsByService[service] ?? doctorOptionsByService['Poli Umum']
+
+const getDefaultDoctorName = (service: string) =>
+  getDoctorOptionsByService(service)[0] ?? '-'
+
+
 const guarantorOptions = [
   'Umum',
   'BPJS Kesehatan',
@@ -10,13 +55,6 @@ const guarantorOptions = [
   'Perusahaan',
 ]
 
-const visitDestinationOptions = [
-  'Poli Umum',
-  'Poli Penyakit Dalam',
-  'Poli Anak',
-  'Poli Bedah',
-  'IGD',
-]
 
 type PatientForm = {
   nik: string
@@ -98,6 +136,8 @@ const initialForm: PatientForm = {
 
 function NewPatientRegistrationPage() {
   const [form, setForm] = useState<PatientForm>(initialForm)
+  const [selectedService, setSelectedService] = useState('Poli Umum')
+  const [selectedDoctor, setSelectedDoctor] = useState(getDefaultDoctorName('Poli Umum'))
   const [isSaved, setIsSaved] = useState(false)
   const [, setIsSaving] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -182,12 +222,12 @@ function NewPatientRegistrationPage() {
     try {
       const clinics = await api.get<ClinicApiResponse[]>('/clinics')
       const selectedClinic = clinics.find(
-        (clinic) => clinic.name === form.destination,
+        (clinic) => clinic.name === selectedService,
       )
 
       if (!selectedClinic) {
         throw new Error(
-          `Tujuan layanan "${form.destination}" belum tersedia di backend.`,
+          `Tujuan layanan "${selectedService}" belum tersedia di backend.`,
         )
       }
 
@@ -252,6 +292,8 @@ function NewPatientRegistrationPage() {
     setSubmitError('')
     setSavedRegistration(null)
     setShowValidation(false)
+    setSelectedService('Poli Umum')
+    setSelectedDoctor(getDefaultDoctorName('Poli Umum'))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -567,13 +609,36 @@ function NewPatientRegistrationPage() {
                 <label>
                   <span>Tujuan Layanan</span>
                   <select
-                    value={form.destination}
-                    onChange={(event) => updateField('destination', event.target.value)}
+                    name="service"
+                    value={selectedService}
+                    onChange={(event) => {
+                      const nextService = event.target.value
+                      setSelectedService(nextService)
+                      setSelectedDoctor(getDefaultDoctorName(nextService))
+                    }}
                   >
-                    <option value="">Pilih tujuan layanan</option>
-                    {visitDestinationOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
+                    <option value="Poli Umum">Poli Umum</option>
+                    <option value="IGD">IGD</option>
+                    <option value="Poli Penyakit Dalam">Poli Penyakit Dalam</option>
+                    <option value="Poli Anak">Poli Anak</option>
+                    <option value="Poli Bedah">Poli Bedah</option>
+                    <option value="Poli Kandungan">Poli Kandungan</option>
+                    <option value="Poli Gigi">Poli Gigi</option>
+                    <option value="Laboratorium">Laboratorium</option>
+                    <option value="Radiologi">Radiologi</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Dokter Sesuai Poli / Unit</span>
+                  <select
+                    name="doctorName"
+                    value={selectedDoctor}
+                    onChange={(event) => setSelectedDoctor(event.target.value)}
+                  >
+                    {getDoctorOptionsByService(selectedService).map((doctor) => (
+                      <option value={doctor} key={doctor}>
+                        {doctor}
                       </option>
                     ))}
                   </select>
