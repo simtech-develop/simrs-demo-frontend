@@ -30,3 +30,9 @@ Thumbs.db
 # Optional lock/temp files
 *.swp
 *.swo
+
+# Local backup files
+*.bak
+*.bak-*
+*.backup
+*.backup-*
