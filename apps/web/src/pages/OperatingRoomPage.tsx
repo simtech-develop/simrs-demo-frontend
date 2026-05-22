@@ -141,6 +141,14 @@ const hospitalTariffMaster: HospitalTariffItem[] = [
 
 const operatingCostStorageKey = 'simrs_operating_room_costs'
 
+const operatingCostCategoryOrder: OperatingCostCategory[] = [
+  'Tindakan Dokter',
+  'Obat',
+  'Alat Kesehatan',
+  'Jasa Sarana',
+  'Penunjang',
+]
+
 const initialOperatingCostItems: OperatingCostItem[] = [
   {
     id: 'doctor-action-1',
@@ -197,6 +205,17 @@ function OperatingRoomPage() {
     initialOperatingCostItems,
   )
   const [isBillingSaved, setIsBillingSaved] = useState(false)
+
+  const groupedCostItems = useMemo(
+    () =>
+      operatingCostCategoryOrder
+        .map((category) => ({
+          category,
+          items: costItems.filter((item) => item.category === category),
+        }))
+        .filter((group) => group.items.length > 0),
+    [costItems],
+  )
 
   const totalOperatingCost = useMemo(
     () =>
@@ -417,130 +436,145 @@ function OperatingRoomPage() {
             </p>
           </div>
 
-          <div className="operating-billing-toolbar">
-            <button type="button" onClick={() => addCostItem('Tindakan Dokter')}>
-              + Tindakan Dokter
-            </button>
-            <button type="button" onClick={() => addCostItem('Obat')}>
-              + Obat
-            </button>
-            <button type="button" onClick={() => addCostItem('Alat Kesehatan')}>
-              + Alat Kesehatan
-            </button>
-            <button type="button" onClick={() => addCostItem('Jasa Sarana')}>
-              + Jasa Sarana
-            </button>
-            <button type="button" onClick={() => addCostItem('Penunjang')}>
-              + Penunjang
-            </button>
-          </div>
 
-          <div className="operating-cost-list">
-            {costItems.map((item) => (
-              <article className="operating-cost-card" key={item.id}>
-                <div className="operating-cost-card-header">
-                  <strong>{item.category}</strong>
-                  <button type="button" onClick={() => removeCostItem(item.id)}>
-                    Hapus
+          <div className="operating-cost-list grouped">
+            {groupedCostItems.map((group) => (
+              <section className="operating-cost-cluster" key={group.category}>
+                <div className="operating-cost-cluster-header">
+                  <div>
+                    <small>Komponen Biaya</small>
+                    <h3>{group.category}</h3>
+                    <p>
+                      {group.items.length} item tercatat pada komponen{' '}
+                      {group.category.toLowerCase()}.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => addCostItem(group.category)}
+                  >
+                    + Tambah {group.category}
                   </button>
                 </div>
 
-                <div className="form-grid two-columns">
-                  <label className="full-span">
-                    <span>Pilih Tarif RS</span>
-                    <select
-                      value={item.tariffCode}
-                      onChange={(event) =>
-                        applyTariffItem(item.id, event.target.value)
-                      }
-                    >
-                      <option value="">Input manual / tarif khusus</option>
-                      {hospitalTariffMaster.map((tariff) => (
-                        <option value={tariff.code} key={tariff.code}>
-                          {tariff.code} - {tariff.name} - {formatCurrency(tariff.defaultPrice)}
-                        </option>
-                      ))}
-                    </select>
-                    <small className="tariff-helper-text">
-                      Pilih tarif untuk mengisi harga otomatis, atau kosongkan
-                      untuk input manual.
-                    </small>
-                  </label>
+                <div className="operating-cost-cluster-items">
+                  {group.items.map((item) => (
+                    <article className="operating-cost-card compact" key={item.id}>
+                      <div className="operating-cost-card-header">
+                        <strong>{item.itemName}</strong>
 
-                  <label>
-                    <span>Nama Item</span>
-                    <input
-                      value={item.itemName}
-                      onChange={(event) =>
-                        updateCostItem(item.id, 'itemName', event.target.value)
-                      }
-                    />
-                  </label>
+                        <button
+                          type="button"
+                          className="remove-cost-button"
+                          onClick={() => removeCostItem(item.id)}
+                        >
+                          Hapus
+                        </button>
+                      </div>
 
-                  <label>
-                    <span>Kategori</span>
-                    <select
-                      value={item.category}
-                      onChange={(event) =>
-                        updateCostItem(
-                          item.id,
-                          'category',
-                          event.target.value as OperatingCostCategory,
-                        )
-                      }
-                    >
-                      <option value="Tindakan Dokter">Tindakan Dokter</option>
-                      <option value="Obat">Obat</option>
-                      <option value="Alat Kesehatan">Alat Kesehatan</option>
-                      <option value="Jasa Sarana">Jasa Sarana</option>
-                      <option value="Penunjang">Penunjang</option>
-                    </select>
-                  </label>
+                      <div className="form-grid two-columns">
+                        <label className="full-span">
+                          <span>Pilih Tarif RS</span>
+                          <select
+                            value={item.tariffCode}
+                            onChange={(event) =>
+                              applyTariffItem(item.id, event.target.value)
+                            }
+                          >
+                            <option value="">Input manual / tarif khusus</option>
+                            {hospitalTariffMaster
+                              .filter((tariff) => tariff.category === group.category)
+                              .map((tariff) => (
+                                <option value={tariff.code} key={tariff.code}>
+                                  {tariff.code} - {tariff.name} -{' '}
+                                  {formatCurrency(tariff.defaultPrice)}
+                                </option>
+                              ))}
+                          </select>
+                          <small className="tariff-helper-text">
+                            Tarif yang tampil sudah difilter sesuai komponen{' '}
+                            {group.category.toLowerCase()}.
+                          </small>
+                        </label>
 
-                  <label>
-                    <span>Qty</span>
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(event) =>
-                        updateCostItem(
-                          item.id,
-                          'quantity',
-                          Number(event.target.value) || 1,
-                        )
-                      }
-                    />
-                  </label>
+                        <label>
+                          <span>Nama Item</span>
+                          <input
+                            value={item.itemName}
+                            onChange={(event) =>
+                              updateCostItem(item.id, 'itemName', event.target.value)
+                            }
+                          />
+                        </label>
 
-                  <label>
-                    <span>Harga Satuan Manual / Override</span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      value={String(item.unitPrice)}
-                      onChange={(event) =>
-                        updateCostItem(
-                          item.id,
-                          'unitPrice',
-                          normalizeManualPrice(event.target.value),
-                        )
-                      }
-                      placeholder="Contoh: 750000"
-                    />
-                    <small className="tariff-helper-text">
-                      Harga dari master tarif tetap dapat disesuaikan manual.
-                    </small>
-                  </label>
+                        <label>
+                          <span>Kategori</span>
+                          <select
+                            value={item.category}
+                            onChange={(event) =>
+                              updateCostItem(
+                                item.id,
+                                'category',
+                                event.target.value as OperatingCostCategory,
+                              )
+                            }
+                          >
+                            <option value="Tindakan Dokter">Tindakan Dokter</option>
+                            <option value="Obat">Obat</option>
+                            <option value="Alat Kesehatan">Alat Kesehatan</option>
+                            <option value="Jasa Sarana">Jasa Sarana</option>
+                            <option value="Penunjang">Penunjang</option>
+                          </select>
+                        </label>
+
+                        <label>
+                          <span>Qty</span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(event) =>
+                              updateCostItem(
+                                item.id,
+                                'quantity',
+                                Number(event.target.value) || 1,
+                              )
+                            }
+                          />
+                        </label>
+
+                        <label>
+                          <span>Harga Satuan Manual / Override</span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={String(item.unitPrice)}
+                            onChange={(event) =>
+                              updateCostItem(
+                                item.id,
+                                'unitPrice',
+                                normalizeManualPrice(event.target.value),
+                              )
+                            }
+                            placeholder="Contoh: 750000"
+                          />
+                          <small className="tariff-helper-text">
+                            Harga dari master tarif tetap dapat disesuaikan manual.
+                          </small>
+                        </label>
+                      </div>
+
+                      <div className="operating-cost-subtotal">
+                        <span>Subtotal</span>
+                        <strong>
+                          {formatCurrency(item.quantity * item.unitPrice)}
+                        </strong>
+                      </div>
+                    </article>
+                  ))}
                 </div>
-
-                <div className="operating-cost-subtotal">
-                  <span>Subtotal</span>
-                  <strong>
-                    {formatCurrency(item.quantity * item.unitPrice)}
-                  </strong>
-                </div>
-              </article>
+              </section>
             ))}
           </div>
 

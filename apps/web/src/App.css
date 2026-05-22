@@ -7719,3 +7719,339 @@
     width: 100%;
   }
 }
+
+/* Cashier billing module */
+.cashier-patient-panel,
+.cashier-billing-panel,
+.cashier-payment-panel {
+  margin-top: 18px;
+}
+
+.cashier-info-grid,
+.cashier-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.cashier-info-grid div,
+.cashier-summary-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.62);
+  padding: 14px;
+}
+
+.cashier-info-grid span,
+.cashier-summary-grid span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.cashier-info-grid strong,
+.cashier-summary-grid strong {
+  color: #f8fafc;
+  line-height: 1.4;
+}
+
+.cashier-table-wrap {
+  overflow-x: auto;
+  margin-top: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+}
+
+.cashier-billing-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 880px;
+}
+
+.cashier-billing-table th,
+.cashier-billing-table td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 14px;
+  text-align: left;
+}
+
+.cashier-billing-table th {
+  color: #7dd3fc;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(2, 6, 23, 0.44);
+}
+
+.cashier-billing-table td {
+  color: #e2e8f0;
+}
+
+.cashier-billing-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.cashier-summary-grid {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+}
+
+.cashier-summary-grid div {
+  border-color: rgba(34, 197, 94, 0.24);
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.cashier-summary-grid strong {
+  font-size: 20px;
+}
+
+.cashier-empty-state {
+  border: 1px dashed rgba(148, 163, 184, 0.32);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.46);
+  color: #94a3b8;
+  margin-top: 16px;
+  padding: 18px;
+}
+
+.cashier-status-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.cashier-status-buttons button {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.58);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 52px;
+  padding: 12px;
+}
+
+.cashier-status-buttons button.active {
+  border-color: rgba(34, 197, 94, 0.58);
+  background: rgba(22, 163, 74, 0.16);
+  color: #f0fdf4;
+}
+
+.cashier-note-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.cashier-note-field textarea {
+  width: 100%;
+  min-height: 96px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.66);
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 15px;
+  padding: 13px 15px;
+  resize: vertical;
+  outline: none;
+}
+
+.cashier-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.cashier-action-bar button,
+.cashier-action-bar a {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #eff6ff;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 12px 18px;
+  text-decoration: none;
+}
+
+.cashier-action-bar button:nth-child(2) {
+  background: rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.cashier-action-bar a {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+@media (max-width: 1100px) {
+  .cashier-info-grid,
+  .cashier-summary-grid,
+  .cashier-status-buttons {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .cashier-info-grid,
+  .cashier-summary-grid,
+  .cashier-status-buttons {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cost action buttons per component */
+.operating-cost-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.operating-cost-card-actions button {
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+.operating-cost-card-actions .add-same-cost-button {
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  background: rgba(14, 165, 233, 0.14);
+  color: #bae6fd;
+}
+
+.operating-cost-card-actions .add-same-cost-button:hover {
+  border-color: rgba(56, 189, 248, 0.72);
+  background: rgba(14, 165, 233, 0.22);
+  color: #e0f2fe;
+}
+
+.operating-cost-card-actions .remove-cost-button {
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+.operating-cost-card-actions .remove-cost-button:hover {
+  border-color: rgba(239, 68, 68, 0.58);
+  background: rgba(239, 68, 68, 0.2);
+  color: #fecaca;
+}
+
+@media (max-width: 720px) {
+  .operating-cost-card-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .operating-cost-card-actions {
+    width: 100%;
+  }
+
+  .operating-cost-card-actions button {
+    flex: 1;
+  }
+}
+
+/* Operating cost grouped by category */
+.operating-cost-list.grouped {
+  display: grid;
+  gap: 18px;
+}
+
+.operating-cost-cluster {
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 30%),
+    rgba(15, 23, 42, 0.62);
+  padding: 16px;
+}
+
+.operating-cost-cluster-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+}
+
+.operating-cost-cluster-header small {
+  display: block;
+  color: #7dd3fc;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.operating-cost-cluster-header h3 {
+  color: #f8fafc;
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+
+.operating-cost-cluster-header p {
+  color: #94a3b8;
+  margin: 0;
+}
+
+.operating-cost-cluster-header button {
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.14);
+  color: #bae6fd;
+  cursor: pointer;
+  font-weight: 900;
+  min-width: 190px;
+  padding: 11px 15px;
+}
+
+.operating-cost-cluster-header button:hover {
+  border-color: rgba(56, 189, 248, 0.72);
+  background: rgba(14, 165, 233, 0.22);
+  color: #e0f2fe;
+}
+
+.operating-cost-cluster-items {
+  display: grid;
+  gap: 12px;
+}
+
+.operating-cost-card.compact {
+  background: rgba(2, 6, 23, 0.36);
+}
+
+.operating-cost-card.compact .operating-cost-card-header strong {
+  color: #f8fafc;
+  font-size: 15px;
+}
+
+.operating-cost-card.compact .remove-cost-button {
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+@media (max-width: 720px) {
+  .operating-cost-cluster-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .operating-cost-cluster-header button {
+    width: 100%;
+  }
+}
