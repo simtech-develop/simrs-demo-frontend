@@ -7376,3 +7376,346 @@
     font-size: 14px;
   }
 }
+
+/* Inpatient daily care */
+.inpatient-daily-care-panel,
+.inpatient-discharge-panel {
+  margin-top: 18px;
+}
+
+.inpatient-subsection-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 22px 0 14px;
+}
+
+.inpatient-subsection-title span {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(14, 165, 233, 0.18);
+  color: #7dd3fc;
+  font-weight: 900;
+}
+
+.inpatient-subsection-title strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 17px;
+  margin-bottom: 4px;
+}
+
+.inpatient-subsection-title p {
+  color: #94a3b8;
+  margin: 0;
+}
+
+.inpatient-cost-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.inpatient-cost-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inpatient-cost-grid input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.62);
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 15px;
+  padding: 12px 14px;
+  outline: none;
+}
+
+.inpatient-daily-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  border: 1px solid rgba(34, 197, 94, 0.32);
+  border-radius: 18px;
+  background: rgba(22, 163, 74, 0.1);
+  padding: 18px;
+}
+
+.inpatient-daily-summary span {
+  display: block;
+  color: #86efac;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.inpatient-daily-summary strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.inpatient-daily-summary p {
+  color: #bbf7d0;
+  margin: 0;
+}
+
+.inpatient-daily-summary button {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #f0fdf4;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 12px 18px;
+}
+
+@media (max-width: 1100px) {
+  .inpatient-cost-grid {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .inpatient-cost-grid,
+  .inpatient-daily-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .inpatient-daily-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .inpatient-daily-summary button {
+    width: 100%;
+  }
+}
+
+/* ======================================================
+   Inpatient Daily Care - UI Polish
+   ====================================================== */
+
+.inpatient-daily-care-panel,
+.inpatient-discharge-panel {
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 34%),
+    rgba(15, 23, 42, 0.72);
+}
+
+.inpatient-daily-care-panel .outpatient-panel-title,
+.inpatient-discharge-panel .outpatient-panel-title {
+  margin-bottom: 18px;
+}
+
+.inpatient-daily-care-panel .outpatient-panel-title h2,
+.inpatient-discharge-panel .outpatient-panel-title h2 {
+  font-size: 28px;
+}
+
+.inpatient-daily-care-panel .outpatient-panel-title p,
+.inpatient-discharge-panel .outpatient-panel-title p {
+  color: #94a3b8;
+  max-width: 920px;
+  line-height: 1.6;
+}
+
+/* Subsection header */
+.inpatient-subsection-title {
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.34);
+  padding: 14px;
+}
+
+.inpatient-subsection-title span {
+  flex: 0 0 auto;
+}
+
+.inpatient-subsection-title div {
+  min-width: 0;
+}
+
+/* Make all daily care form controls proportional */
+.inpatient-daily-care-panel label,
+.inpatient-discharge-panel label,
+.inpatient-cost-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.inpatient-daily-care-panel input,
+.inpatient-daily-care-panel select,
+.inpatient-daily-care-panel textarea,
+.inpatient-discharge-panel input,
+.inpatient-discharge-panel select,
+.inpatient-discharge-panel textarea,
+.inpatient-cost-grid input {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.66);
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.45;
+  padding: 13px 15px;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+
+.inpatient-daily-care-panel textarea,
+.inpatient-discharge-panel textarea {
+  min-height: 126px;
+  resize: vertical;
+}
+
+.inpatient-daily-care-panel select,
+.inpatient-discharge-panel select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #7dd3fc 50%),
+    linear-gradient(135deg, #7dd3fc 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) 50%,
+    calc(100% - 14px) 50%;
+  background-size:
+    6px 6px,
+    6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 42px;
+  cursor: pointer;
+}
+
+.inpatient-daily-care-panel input:focus,
+.inpatient-daily-care-panel select:focus,
+.inpatient-daily-care-panel textarea:focus,
+.inpatient-discharge-panel input:focus,
+.inpatient-discharge-panel select:focus,
+.inpatient-discharge-panel textarea:focus,
+.inpatient-cost-grid input:focus {
+  border-color: rgba(56, 189, 248, 0.72);
+  background: rgba(2, 6, 23, 0.86);
+  box-shadow:
+    0 0 0 3px rgba(14, 165, 233, 0.14),
+    0 14px 30px rgba(2, 6, 23, 0.2);
+}
+
+/* Daily care field grid */
+.inpatient-daily-care-panel .inpatient-form-grid,
+.inpatient-discharge-panel .inpatient-form-grid {
+  align-items: stretch;
+  gap: 16px;
+}
+
+.inpatient-daily-care-panel .inpatient-form-grid label:has(textarea),
+.inpatient-discharge-panel .inpatient-form-grid label:has(textarea) {
+  grid-column: 1 / -1;
+}
+
+/* Assessment subsection: make select/input balanced */
+.inpatient-daily-care-panel .inpatient-form-grid label:not(:has(textarea)) {
+  min-width: 0;
+}
+
+/* Cost cards */
+.inpatient-cost-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.inpatient-cost-grid label {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.56);
+  padding: 14px;
+}
+
+.inpatient-cost-grid label span {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* Summary total */
+.inpatient-daily-summary {
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(22, 163, 74, 0.16), rgba(14, 165, 233, 0.08)),
+    rgba(15, 23, 42, 0.72);
+}
+
+.inpatient-daily-summary button {
+  min-width: 230px;
+  min-height: 48px;
+  box-shadow: 0 16px 34px rgba(34, 197, 94, 0.18);
+}
+
+/* Discharge action buttons */
+.inpatient-discharge-panel .inpatient-action-bar {
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  padding-top: 16px;
+}
+
+.inpatient-discharge-panel .inpatient-action-bar a {
+  min-width: 160px;
+  justify-content: center;
+  text-align: center;
+}
+
+.inpatient-discharge-panel .inpatient-action-bar a:first-child {
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  border: 0;
+  color: #eff6ff;
+}
+
+.inpatient-discharge-panel .inpatient-action-bar a:nth-child(2) {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border: 0;
+  color: #f0fdf4;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .inpatient-cost-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .inpatient-daily-care-panel .inpatient-form-grid,
+  .inpatient-discharge-panel .inpatient-form-grid,
+  .inpatient-cost-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inpatient-daily-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .inpatient-daily-summary button {
+    width: 100%;
+  }
+}
