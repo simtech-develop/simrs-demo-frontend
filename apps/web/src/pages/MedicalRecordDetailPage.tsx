@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { api } from '../lib/api'
-import { readStorage } from '../services/simrsStorage'
+import { readStorage, writeStorage } from '../services/simrsStorage'
 import { simrsStorageKeys } from '../services/simrsStorageKeys'
 
 const extractTextBetween = (
@@ -129,10 +129,7 @@ const saveRmeToCashier = () => {
     savedAt: new Date().toISOString(),
   }
 
-  window.localStorage.setItem(
-    'simrs_rme_cashier_billing_demo',
-    JSON.stringify(payload),
-  )
+  writeStorage(simrsStorageKeys.rmeCashierBilling, payload)
 
   window.location.href = '/kasir'
 }
