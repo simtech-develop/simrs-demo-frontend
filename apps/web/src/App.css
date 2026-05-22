@@ -6846,3 +6846,411 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Inpatient admission */
+.inpatient-admission-panel,
+.inpatient-guarantor-panel,
+.inpatient-room-panel {
+  margin-top: 18px;
+}
+
+.inpatient-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.inpatient-guarantor-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.inpatient-guarantor-buttons button {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.68);
+  color: #e2e8f0;
+  cursor: pointer;
+  padding: 16px;
+  text-align: left;
+}
+
+.inpatient-guarantor-buttons button.active {
+  border-color: rgba(34, 197, 94, 0.58);
+  background: rgba(22, 163, 74, 0.14);
+  box-shadow: 0 14px 30px rgba(34, 197, 94, 0.1);
+}
+
+.inpatient-guarantor-buttons span {
+  display: block;
+  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.inpatient-guarantor-buttons small {
+  color: #94a3b8;
+}
+
+.inpatient-guarantor-note {
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 18px;
+  background: rgba(14, 165, 233, 0.08);
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.inpatient-guarantor-note small {
+  display: block;
+  color: #7dd3fc;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.inpatient-guarantor-note strong {
+  color: #f8fafc;
+  display: block;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.inpatient-guarantor-note p {
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.inpatient-admission-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.inpatient-admission-summary div {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 14px;
+}
+
+.inpatient-admission-summary span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.inpatient-admission-summary strong {
+  color: #f8fafc;
+}
+
+.inpatient-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.inpatient-action-bar button,
+.inpatient-action-bar a {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #eff6ff;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 12px 18px;
+  text-decoration: none;
+}
+
+.inpatient-action-bar a {
+  background: rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+@media (max-width: 900px) {
+  .inpatient-form-grid,
+  .inpatient-guarantor-buttons,
+  .inpatient-admission-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Inpatient admission */
+.inpatient-admission-panel,
+.inpatient-guarantor-panel,
+.inpatient-room-panel {
+  margin-top: 18px;
+}
+
+.inpatient-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.inpatient-guarantor-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.inpatient-guarantor-buttons button {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.68);
+  color: #e2e8f0;
+  cursor: pointer;
+  padding: 16px;
+  text-align: left;
+}
+
+.inpatient-guarantor-buttons button.active {
+  border-color: rgba(34, 197, 94, 0.58);
+  background: rgba(22, 163, 74, 0.14);
+  box-shadow: 0 14px 30px rgba(34, 197, 94, 0.1);
+}
+
+.inpatient-guarantor-buttons span {
+  display: block;
+  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.inpatient-guarantor-buttons small {
+  color: #94a3b8;
+}
+
+.inpatient-guarantor-note {
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 18px;
+  background: rgba(14, 165, 233, 0.08);
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.inpatient-guarantor-note small {
+  display: block;
+  color: #7dd3fc;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.inpatient-guarantor-note strong {
+  color: #f8fafc;
+  display: block;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.inpatient-guarantor-note p {
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.inpatient-admission-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.inpatient-admission-summary div {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 14px;
+}
+
+.inpatient-admission-summary span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.inpatient-admission-summary strong {
+  color: #f8fafc;
+}
+
+.inpatient-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.inpatient-action-bar button,
+.inpatient-action-bar a {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #eff6ff;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 12px 18px;
+  text-decoration: none;
+}
+
+.inpatient-action-bar a {
+  background: rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+@media (max-width: 900px) {
+  .inpatient-form-grid,
+  .inpatient-guarantor-buttons,
+  .inpatient-admission-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Inpatient admission */
+.inpatient-admission-panel,
+.inpatient-guarantor-panel,
+.inpatient-room-panel {
+  margin-top: 18px;
+}
+
+.inpatient-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.inpatient-guarantor-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.inpatient-guarantor-buttons button {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.68);
+  color: #e2e8f0;
+  cursor: pointer;
+  padding: 16px;
+  text-align: left;
+}
+
+.inpatient-guarantor-buttons button.active {
+  border-color: rgba(34, 197, 94, 0.58);
+  background: rgba(22, 163, 74, 0.14);
+  box-shadow: 0 14px 30px rgba(34, 197, 94, 0.1);
+}
+
+.inpatient-guarantor-buttons span {
+  display: block;
+  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.inpatient-guarantor-buttons small {
+  color: #94a3b8;
+}
+
+.inpatient-guarantor-note {
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 18px;
+  background: rgba(14, 165, 233, 0.08);
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.inpatient-guarantor-note small {
+  display: block;
+  color: #7dd3fc;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.inpatient-guarantor-note strong {
+  color: #f8fafc;
+  display: block;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.inpatient-guarantor-note p {
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.inpatient-admission-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.inpatient-admission-summary div {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 14px;
+}
+
+.inpatient-admission-summary span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.inpatient-admission-summary strong {
+  color: #f8fafc;
+}
+
+.inpatient-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.inpatient-action-bar button,
+.inpatient-action-bar a {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #eff6ff;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 12px 18px;
+  text-decoration: none;
+}
+
+.inpatient-action-bar a {
+  background: rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+@media (max-width: 900px) {
+  .inpatient-form-grid,
+  .inpatient-guarantor-buttons,
+  .inpatient-admission-summary {
+    grid-template-columns: 1fr;
+  }
+}

@@ -19,6 +19,7 @@ import EmergencyPage from './pages/EmergencyPage'
 import OperatingRoomPage from './pages/OperatingRoomPage'
 import EmergencyAssessmentPage from './pages/EmergencyAssessmentPage'
 import EmergencyMedicalRecordDetailPage from './pages/EmergencyMedicalRecordDetailPage'
+import InpatientPage from './pages/InpatientPage'
 
 
 
@@ -55,6 +56,7 @@ function App() {
       <Route path="/igd/asesmen/:id" element={<EmergencyAssessmentPage />} />
      
       <Route path="/igd/asesmen/:id" element={<EmergencyAssessmentPage />} />
+      <Route path="/rawat-inap" element={<InpatientPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

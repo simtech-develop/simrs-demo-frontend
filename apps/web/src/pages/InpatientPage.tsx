@@ -1,6 +1,133 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 
+type InpatientGuarantor = 'Umum' | 'BPJS' | 'Asuransi Lain'
+
+type InpatientAdmissionStatus =
+  | 'Menunggu Kamar'
+  | 'Kamar Disiapkan'
+  | 'Masuk Rawat Inap'
+  | 'Batal Rawat Inap'
+
+type InpatientAdmissionForm = {
+  patientName: string
+  medicalRecordNo: string
+  sourceUnit: string
+  guarantor: InpatientGuarantor
+  insuranceNumber: string
+  careClass: string
+  ward: string
+  bed: string
+  dpjp: string
+  admissionStatus: InpatientAdmissionStatus
+  clinicalNote: string
+}
+
+const inpatientAdmissionStorageKey = 'simrs_inpatient_admission_demo'
+
+const initialAdmissionForm: InpatientAdmissionForm = {
+  patientName: 'Romi',
+  medicalRecordNo: 'RM-2026-113187',
+  sourceUnit: 'IGD / Ruang Tindakan',
+  guarantor: 'BPJS',
+  insuranceNumber: '0001234567890',
+  careClass: 'Kelas 2',
+  ward: 'Ruang Mawar',
+  bed: 'MWR-201-A',
+  dpjp: 'dr. Budi Santoso, Sp.PD',
+  admissionStatus: 'Menunggu Kamar',
+  clinicalNote:
+    'Pasien pasca penanganan IGD merah, perlu monitoring lanjutan di rawat inap.',
+}
+
+const guarantorNotes: Record<InpatientGuarantor, string> = {
+  Umum:
+    'Pasien umum/mandiri. Administrasi rawat inap menggunakan estimasi biaya dan deposit sesuai kebijakan rumah sakit.',
+  BPJS:
+    'Pasien BPJS. Pastikan SEP, kelas hak rawat, eligibilitas, dan rencana rawat inap sudah tervalidasi.',
+  'Asuransi Lain':
+    'Pasien asuransi lain. Pastikan kartu/polis, surat jaminan, plafon manfaat, dan persetujuan penjamin.',
+}
+
+const classOptions = ['Kelas 3', 'Kelas 2', 'Kelas 1', 'VIP']
+const wardOptions = [
+  'Ruang Mawar',
+  'Ruang Melati',
+  'Ruang Anggrek',
+  'Ruang Perawatan Anak',
+  'Ruang Isolasi',
+]
+const bedOptions = ['MWR-201-A', 'MWR-201-B', 'MLT-102-A', 'AGR-301-A', 'ISO-01']
+const dpjpOptions = [
+  'dr. Budi Santoso, Sp.PD',
+  'dr. Andi Pratama',
+  'dr. Maya Lestari, Sp.A',
+  'dr. Rina Kusuma, Sp.B',
+]
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(value)
+
 function InpatientPage() {
+  const [admission, setAdmission] =
+    useState<InpatientAdmissionForm>(initialAdmissionForm)
+  const [isSaved, setIsSaved] = useState(false)
+
+  const estimatedDeposit = useMemo(() => {
+    if (admission.guarantor === 'BPJS') {
+      return 0
+    }
+
+    if (admission.guarantor === 'Asuransi Lain') {
+      return 1000000
+    }
+
+    if (admission.careClass === 'VIP') {
+      return 3000000
+    }
+
+    if (admission.careClass === 'Kelas 1') {
+      return 2000000
+    }
+
+    return 1000000
+  }, [admission.careClass, admission.guarantor])
+
+  const updateAdmission = <K extends keyof InpatientAdmissionForm>(
+    field: K,
+    value: InpatientAdmissionForm[K],
+  ) => {
+    setAdmission((currentAdmission) => ({
+      ...currentAdmission,
+      [field]: value,
+    }))
+
+    if (isSaved) {
+      setIsSaved(false)
+    }
+  }
+
+  const saveAdmission = () => {
+    const payload = {
+      ...admission,
+      estimatedDeposit,
+      savedAt: new Date().toISOString(),
+      source: 'Ruang Tindakan / IGD',
+    }
+
+    window.localStorage.setItem(
+      inpatientAdmissionStorageKey,
+      JSON.stringify(payload),
+    )
+
+    setIsSaved(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
     <main className="outpatient-app">
       <aside className="dashboard-sidebar-pro">
@@ -16,7 +143,9 @@ function InpatientPage() {
           <Link to="/rawat-jalan">Rawat Jalan</Link>
           <Link to="/igd">IGD</Link>
           <Link to="/ruang-tindakan">Ruang Tindakan</Link>
-          <Link to="/rawat-inap">Rawat Inap</Link>
+          <Link className="active" to="/rawat-inap">
+            Rawat Inap
+          </Link>
           <Link to="/rme">RME</Link>
           <Link to="/farmasi">Farmasi</Link>
           <Link to="/kasir">Kasir</Link>
@@ -37,68 +166,276 @@ function InpatientPage() {
             <small>Modul Lanjutan IGD</small>
             <h1>Rawat Inap</h1>
             <p>
-              Modul ini digunakan untuk proses admisi pasien dari IGD atau poli
-              menuju ruang perawatan rawat inap.
+              Modul ini digunakan untuk proses admisi pasien dari IGD atau ruang
+              tindakan menuju ruang perawatan rawat inap.
             </p>
           </div>
 
           <div className="outpatient-unit-card">
             <span>Status Modul</span>
-            <strong>Demo Ready</strong>
-            <p>Terhubung dari disposisi IGD</p>
+            <strong>{admission.admissionStatus}</strong>
+            <p>{admission.guarantor}</p>
           </div>
         </header>
 
+        {isSaved && (
+          <section className="registration-success-banner">
+            <strong>Admisi rawat inap tersimpan.</strong>
+            <span>
+              Data pasien, kelas perawatan, ruang, DPJP, dan status penjamin
+              sudah dicatat untuk demo rawat inap.
+            </span>
+          </section>
+        )}
+
         <section className="outpatient-stat-grid">
           <article className="outpatient-stat-card">
-            <span>Permintaan Rawat Inap</span>
+            <span>Pasien Admission</span>
             <strong>1</strong>
-            <small>Dari disposisi IGD</small>
+            <small>Dari IGD / ruang tindakan</small>
           </article>
 
           <article className="outpatient-stat-card">
-            <span>Status Kamar</span>
-            <strong>Perlu Pilih</strong>
-            <small>Kelas dan ruang perawatan</small>
+            <span>Status Penjamin</span>
+            <strong>{admission.guarantor}</strong>
+            <small>{admission.careClass}</small>
           </article>
 
           <article className="outpatient-stat-card">
-            <span>DPJP</span>
-            <strong>Belum Final</strong>
-            <small>Ditentukan saat admisi</small>
+            <span>Estimasi Deposit</span>
+            <strong>{formatCurrency(estimatedDeposit)}</strong>
+            <small>
+              {admission.guarantor === 'BPJS'
+                ? 'Mengikuti validasi SEP'
+                : 'Estimasi awal'}
+            </small>
           </article>
         </section>
 
-        <section className="outpatient-panel">
+        <section className="outpatient-panel inpatient-admission-panel">
           <div className="outpatient-panel-title">
-            <small>Alur Rawat Inap</small>
-            <h2>Proses Admisi Pasien</h2>
+            <small>Admission Rawat Inap</small>
+            <h2>Data Admisi Pasien</h2>
+            <p>
+              Validasi pasien, penjamin, kelas perawatan, ruang, bed, dan DPJP
+              sebelum pasien dipindahkan ke rawat inap.
+            </p>
           </div>
 
-          <div className="outpatient-process-flow">
-            <div>
-              <span>01</span>
-              <strong>Validasi Admission</strong>
-              <p>Pastikan pasien, penjamin, diagnosis, dan instruksi rawat inap.</p>
-            </div>
+          <div className="inpatient-form-grid">
+            <label>
+              <span>No. Rekam Medis</span>
+              <input
+                value={admission.medicalRecordNo}
+                onChange={(event) =>
+                  updateAdmission('medicalRecordNo', event.target.value)
+                }
+              />
+            </label>
 
-            <div>
-              <span>02</span>
-              <strong>Pilih Kelas & Ruang</strong>
-              <p>Tentukan kelas perawatan, ruangan, dan tempat tidur.</p>
-            </div>
+            <label>
+              <span>Nama Pasien</span>
+              <input
+                value={admission.patientName}
+                onChange={(event) =>
+                  updateAdmission('patientName', event.target.value)
+                }
+              />
+            </label>
 
-            <div>
-              <span>03</span>
-              <strong>Tentukan DPJP</strong>
-              <p>Set dokter penanggung jawab pasien rawat inap.</p>
-            </div>
+            <label>
+              <span>Asal Pasien</span>
+              <input
+                value={admission.sourceUnit}
+                onChange={(event) =>
+                  updateAdmission('sourceUnit', event.target.value)
+                }
+              />
+            </label>
 
+            <label>
+              <span>Status Admisi</span>
+              <select
+                value={admission.admissionStatus}
+                onChange={(event) =>
+                  updateAdmission(
+                    'admissionStatus',
+                    event.target.value as InpatientAdmissionStatus,
+                  )
+                }
+              >
+                <option value="Menunggu Kamar">Menunggu Kamar</option>
+                <option value="Kamar Disiapkan">Kamar Disiapkan</option>
+                <option value="Masuk Rawat Inap">Masuk Rawat Inap</option>
+                <option value="Batal Rawat Inap">Batal Rawat Inap</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section className="outpatient-panel inpatient-guarantor-panel">
+          <div className="outpatient-panel-title">
+            <small>Penjamin Pasien</small>
+            <h2>Status Jenis Penjamin</h2>
+            <p>
+              Tentukan cara bayar pasien rawat inap: umum, BPJS, atau asuransi
+              lain.
+            </p>
+          </div>
+
+          <div className="inpatient-guarantor-buttons">
+            {(['Umum', 'BPJS', 'Asuransi Lain'] as InpatientGuarantor[]).map(
+              (guarantor) => (
+                <button
+                  className={admission.guarantor === guarantor ? 'active' : ''}
+                  key={guarantor}
+                  onClick={() => updateAdmission('guarantor', guarantor)}
+                  type="button"
+                >
+                  <span>{guarantor}</span>
+                  <small>
+                    {guarantor === 'Umum'
+                      ? 'Mandiri'
+                      : guarantor === 'BPJS'
+                        ? 'SEP / Eligibilitas'
+                        : 'Polis / Surat Jaminan'}
+                  </small>
+                </button>
+              ),
+            )}
+          </div>
+
+          <div className="inpatient-guarantor-note">
+            <small>Catatan Penjamin</small>
+            <strong>{admission.guarantor}</strong>
+            <p>{guarantorNotes[admission.guarantor]}</p>
+          </div>
+
+          <div className="inpatient-form-grid">
+            <label>
+              <span>No. Kartu / SEP / Polis</span>
+              <input
+                value={admission.insuranceNumber}
+                onChange={(event) =>
+                  updateAdmission('insuranceNumber', event.target.value)
+                }
+                placeholder={
+                  admission.guarantor === 'BPJS'
+                    ? 'Nomor SEP / kartu BPJS'
+                    : admission.guarantor === 'Asuransi Lain'
+                      ? 'Nomor polis / kartu asuransi'
+                      : '-'
+                }
+              />
+            </label>
+
+            <label>
+              <span>Kelas Perawatan</span>
+              <select
+                value={admission.careClass}
+                onChange={(event) =>
+                  updateAdmission('careClass', event.target.value)
+                }
+              >
+                {classOptions.map((careClass) => (
+                  <option value={careClass} key={careClass}>
+                    {careClass}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section className="outpatient-panel inpatient-room-panel">
+          <div className="outpatient-panel-title">
+            <small>Ruang Perawatan</small>
+            <h2>Penempatan Ruang dan DPJP</h2>
+          </div>
+
+          <div className="inpatient-form-grid">
+            <label>
+              <span>Ruang Rawat</span>
+              <select
+                value={admission.ward}
+                onChange={(event) => updateAdmission('ward', event.target.value)}
+              >
+                {wardOptions.map((ward) => (
+                  <option value={ward} key={ward}>
+                    {ward}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Bed</span>
+              <select
+                value={admission.bed}
+                onChange={(event) => updateAdmission('bed', event.target.value)}
+              >
+                {bedOptions.map((bed) => (
+                  <option value={bed} key={bed}>
+                    {bed}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>DPJP Rawat Inap</span>
+              <select
+                value={admission.dpjp}
+                onChange={(event) => updateAdmission('dpjp', event.target.value)}
+              >
+                {dpjpOptions.map((doctor) => (
+                  <option value={doctor} key={doctor}>
+                    {doctor}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Catatan Klinis Admission</span>
+              <textarea
+                value={admission.clinicalNote}
+                onChange={(event) =>
+                  updateAdmission('clinicalNote', event.target.value)
+                }
+                rows={3}
+              />
+            </label>
+          </div>
+
+          <div className="inpatient-admission-summary">
             <div>
-              <span>04</span>
-              <strong>Transfer Pasien</strong>
-              <p>Pasien dipindahkan dari IGD ke ruang rawat inap.</p>
+              <span>Status Admisi</span>
+              <strong>{admission.admissionStatus}</strong>
             </div>
+            <div>
+              <span>Ruang / Bed</span>
+              <strong>
+                {admission.ward} / {admission.bed}
+              </strong>
+            </div>
+            <div>
+              <span>Penjamin</span>
+              <strong>{admission.guarantor}</strong>
+            </div>
+            <div>
+              <span>Estimasi Deposit</span>
+              <strong>{formatCurrency(estimatedDeposit)}</strong>
+            </div>
+          </div>
+
+          <div className="inpatient-action-bar">
+            <button type="button" onClick={saveAdmission}>
+              Simpan Admisi Rawat Inap
+            </button>
+
+            <Link to="/rme">Lihat RME</Link>
+            <Link to="/kasir">Lanjut Kasir</Link>
           </div>
         </section>
       </section>
