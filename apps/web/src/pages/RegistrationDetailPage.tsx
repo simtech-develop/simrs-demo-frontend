@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { api } from '../lib/api'
+import { readStorage } from '../services/simrsStorage'
+import { simrsStorageKeys } from '../services/simrsStorageKeys'
 
 const formatDateToDDMMYYYY = (value?: string | null) => {
   if (!value || value === '-') {
@@ -18,7 +20,7 @@ const formatDateToDDMMYYYY = (value?: string | null) => {
 }
 
 
-const REGISTRATION_EDIT_STORAGE_KEY = 'simrs_registration_edit_overrides'
+const REGISTRATION_EDIT_STORAGE_KEY = simrsStorageKeys.registrationEditOverrides
 
 type RegistrationEditOverride = {
   id: string
@@ -46,12 +48,10 @@ const getRegistrationEditOverride = (
   }
 
   try {
-    const currentValue = window.localStorage.getItem(
-      REGISTRATION_EDIT_STORAGE_KEY,
-    )
-
-    const currentOverrides: Record<string, RegistrationEditOverride> =
-      currentValue ? JSON.parse(currentValue) : {}
+    const currentOverrides =
+      readStorage<Record<string, RegistrationEditOverride>>(
+        REGISTRATION_EDIT_STORAGE_KEY,
+      ) || {}
 
     const urlKey = window.location.pathname.split('/').filter(Boolean).at(-1)
 
@@ -65,12 +65,11 @@ const getRegistrationEditOverride = (
       }
     }
 
-    const lastEditValue = window.localStorage.getItem(
-      'simrs_last_registration_edit',
+    const lastEdit = readStorage<RegistrationEditOverride>(
+      simrsStorageKeys.lastRegistrationEdit,
     )
 
-    if (lastEditValue) {
-      const lastEdit = JSON.parse(lastEditValue) as RegistrationEditOverride
+    if (lastEdit) {
 
       const hasSamePatient =
         keys.includes(lastEdit.id) ||
