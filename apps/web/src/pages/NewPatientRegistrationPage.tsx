@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router'
 import { api } from '../lib/api'
@@ -374,7 +374,7 @@ function NewPatientRegistrationPage() {
       (form.guarantor === 'Umum' || form.guarantorNumber.trim() !== '')
 
     const visitComplete =
-      form.destination !== '' &&
+      (form.destination !== '' || selectedService !== '') &&
       form.visitType !== '' &&
       form.initialComplaint.trim() !== ''
 
@@ -526,6 +526,21 @@ function NewPatientRegistrationPage() {
       }))
     }
   }
+
+  useEffect(() => {
+    setForm((currentForm) => {
+      const nextDestination = selectedService || currentForm.destination
+
+      if (currentForm.destination === nextDestination) {
+        return currentForm
+      }
+
+      return {
+        ...currentForm,
+        destination: nextDestination,
+      }
+    })
+  }, [selectedService])
 
   const resetForm = () => {
     setForm(initialForm)
