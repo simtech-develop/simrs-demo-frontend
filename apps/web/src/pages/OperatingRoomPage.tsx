@@ -1,6 +1,260 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 
+type OperatingCostCategory =
+  | 'Tindakan Dokter'
+  | 'Obat'
+  | 'Alat Kesehatan'
+  | 'Jasa Sarana'
+  | 'Penunjang'
+
+type OperatingCostItem = {
+  id: string
+  tariffCode: string
+  category: OperatingCostCategory
+  itemName: string
+  quantity: number
+  unitPrice: number
+}
+
+type HospitalTariffItem = {
+  code: string
+  name: string
+  category: OperatingCostCategory
+  unit: string
+  defaultPrice: number
+  serviceUnit: string
+}
+
+const hospitalTariffMaster: HospitalTariffItem[] = [
+  {
+    code: 'TRF-IGD-001',
+    name: 'Tindakan operasi / prosedur IGD',
+    category: 'Tindakan Dokter',
+    unit: 'tindakan',
+    defaultPrice: 1500000,
+    serviceUnit: 'IGD / Ruang Tindakan',
+  },
+  {
+    code: 'TRF-IGD-002',
+    name: 'Konsul dokter spesialis emergensi',
+    category: 'Tindakan Dokter',
+    unit: 'konsul',
+    defaultPrice: 250000,
+    serviceUnit: 'IGD',
+  },
+  {
+    code: 'TRF-IGD-003',
+    name: 'Oksigenasi',
+    category: 'Tindakan Dokter',
+    unit: 'tindakan',
+    defaultPrice: 150000,
+    serviceUnit: 'IGD',
+  },
+  {
+    code: 'TRF-IGD-004',
+    name: 'Pemasangan infus',
+    category: 'Tindakan Dokter',
+    unit: 'tindakan',
+    defaultPrice: 125000,
+    serviceUnit: 'IGD',
+  },
+  {
+    code: 'TRF-IGD-005',
+    name: 'EKG',
+    category: 'Penunjang',
+    unit: 'pemeriksaan',
+    defaultPrice: 200000,
+    serviceUnit: 'IGD / Penunjang',
+  },
+  {
+    code: 'TRF-OBT-001',
+    name: 'Obat anestesi / injeksi / terapi awal',
+    category: 'Obat',
+    unit: 'paket',
+    defaultPrice: 350000,
+    serviceUnit: 'Farmasi',
+  },
+  {
+    code: 'TRF-ALK-001',
+    name: 'BMHP tindakan minor',
+    category: 'Alat Kesehatan',
+    unit: 'paket',
+    defaultPrice: 350000,
+    serviceUnit: 'Ruang Tindakan',
+  },
+  {
+    code: 'TRF-ALK-002',
+    name: 'BMHP operasi / alat kesehatan',
+    category: 'Alat Kesehatan',
+    unit: 'paket',
+    defaultPrice: 750000,
+    serviceUnit: 'Ruang Tindakan / IBS',
+  },
+  {
+    code: 'TRF-SAR-001',
+    name: 'Jasa sarana ruang tindakan',
+    category: 'Jasa Sarana',
+    unit: 'episode',
+    defaultPrice: 500000,
+    serviceUnit: 'Ruang Tindakan',
+  },
+]
+
+const operatingCostStorageKey = 'simrs_operating_room_costs'
+
+const initialOperatingCostItems: OperatingCostItem[] = [
+  {
+    id: 'doctor-action-1',
+    tariffCode: 'TRF-IGD-001',
+    category: 'Tindakan Dokter',
+    itemName: 'Tindakan operasi / prosedur IGD',
+    quantity: 1,
+    unitPrice: 1500000,
+  },
+  {
+    id: 'medicine-1',
+    tariffCode: 'TRF-OBT-001',
+    category: 'Obat',
+    itemName: 'Obat anestesi / injeksi / terapi awal',
+    quantity: 1,
+    unitPrice: 350000,
+  },
+  {
+    id: 'medical-device-1',
+    tariffCode: 'TRF-ALK-002',
+    category: 'Alat Kesehatan',
+    itemName: 'BMHP operasi / alat kesehatan',
+    quantity: 1,
+    unitPrice: 750000,
+  },
+]
+
+const normalizeManualPrice = (value: string) => {
+  const digitsOnly = value.replace(/\D/g, '')
+  const normalizedValue = digitsOnly.replace(/^0+(?=\d)/, '')
+
+  return Number(normalizedValue || '0')
+}
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(value)
+
+
 function OperatingRoomPage() {
+  const [costItems, setCostItems] = useState<OperatingCostItem[]>(
+    initialOperatingCostItems,
+  )
+  const [isBillingSaved, setIsBillingSaved] = useState(false)
+
+  const totalOperatingCost = useMemo(
+    () =>
+      costItems.reduce(
+        (total, item) => total + item.quantity * item.unitPrice,
+        0,
+      ),
+    [costItems],
+  )
+
+  const applyTariffItem = (itemId: string, tariffCode: string) => {
+    const selectedTariff = hospitalTariffMaster.find(
+      (tariff) => tariff.code === tariffCode,
+    )
+
+    setCostItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              tariffCode,
+              category: selectedTariff?.category || item.category,
+              itemName: selectedTariff?.name || item.itemName,
+              unitPrice: selectedTariff?.defaultPrice ?? item.unitPrice,
+            }
+          : item,
+      ),
+    )
+
+    if (isBillingSaved) {
+      setIsBillingSaved(false)
+    }
+  }
+
+  const updateCostItem = <K extends keyof OperatingCostItem>(
+    itemId: string,
+    field: K,
+    value: OperatingCostItem[K],
+  ) => {
+    setCostItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              [field]: value,
+            }
+          : item,
+      ),
+    )
+
+    if (isBillingSaved) {
+      setIsBillingSaved(false)
+    }
+  }
+
+  const addCostItem = (category: OperatingCostCategory) => {
+    const newItem: OperatingCostItem = {
+      id: `cost-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      tariffCode: '',
+      category,
+      itemName:
+        category === 'Tindakan Dokter'
+          ? 'Tindakan dokter tambahan'
+          : category === 'Obat'
+            ? 'Obat tambahan'
+            : category === 'Jasa Sarana'
+              ? 'Jasa sarana tambahan'
+              : category === 'Penunjang'
+                ? 'Pemeriksaan penunjang tambahan'
+                : 'Alat kesehatan tambahan',
+      quantity: 1,
+      unitPrice: 0,
+    }
+
+    setCostItems((currentItems) => [...currentItems, newItem])
+    setIsBillingSaved(false)
+  }
+
+  const removeCostItem = (itemId: string) => {
+    setCostItems((currentItems) =>
+      currentItems.length <= 1
+        ? initialOperatingCostItems
+        : currentItems.filter((item) => item.id !== itemId),
+    )
+    setIsBillingSaved(false)
+  }
+
+  const saveOperatingBilling = () => {
+    const billingPayload = {
+      sourceModule: 'Ruang Tindakan / Operasi',
+      patientPriority: 'Merah',
+      status: 'Draft Tagihan Kasir',
+      items: costItems,
+      total: totalOperatingCost,
+      savedAt: new Date().toISOString(),
+    }
+
+    window.localStorage.setItem(
+      operatingCostStorageKey,
+      JSON.stringify(billingPayload),
+    )
+
+    setIsBillingSaved(true)
+  }
+
   return (
     <main className="outpatient-app">
       <aside className="dashboard-sidebar-pro">
@@ -99,6 +353,159 @@ function OperatingRoomPage() {
               <strong>Pasca Tindakan</strong>
               <p>Lanjutkan ke rawat inap, observasi IGD, kasir, farmasi, atau RME.</p>
             </div>
+          </div>
+        </section>
+
+
+        <section className="outpatient-panel operating-billing-panel">
+          <div className="outpatient-panel-title">
+            <small>Biaya Tindakan</small>
+            <h2>Komponen Biaya Ruang Tindakan</h2>
+            <p>
+              Estimasi biaya tindakan dokter, obat, dan alat kesehatan/BMHP
+              yang nantinya diteruskan ke modul Kasir.
+            </p>
+          </div>
+
+          <div className="operating-billing-toolbar">
+            <button type="button" onClick={() => addCostItem('Tindakan Dokter')}>
+              + Tindakan Dokter
+            </button>
+            <button type="button" onClick={() => addCostItem('Obat')}>
+              + Obat
+            </button>
+            <button type="button" onClick={() => addCostItem('Alat Kesehatan')}>
+              + Alat Kesehatan
+            </button>
+            <button type="button" onClick={() => addCostItem('Jasa Sarana')}>
+              + Jasa Sarana
+            </button>
+            <button type="button" onClick={() => addCostItem('Penunjang')}>
+              + Penunjang
+            </button>
+          </div>
+
+          <div className="operating-cost-list">
+            {costItems.map((item) => (
+              <article className="operating-cost-card" key={item.id}>
+                <div className="operating-cost-card-header">
+                  <strong>{item.category}</strong>
+                  <button type="button" onClick={() => removeCostItem(item.id)}>
+                    Hapus
+                  </button>
+                </div>
+
+                <div className="form-grid two-columns">
+                  <label className="full-span">
+                    <span>Pilih Tarif RS</span>
+                    <select
+                      value={item.tariffCode}
+                      onChange={(event) =>
+                        applyTariffItem(item.id, event.target.value)
+                      }
+                    >
+                      <option value="">Input manual / tarif khusus</option>
+                      {hospitalTariffMaster.map((tariff) => (
+                        <option value={tariff.code} key={tariff.code}>
+                          {tariff.code} - {tariff.name} - {formatCurrency(tariff.defaultPrice)}
+                        </option>
+                      ))}
+                    </select>
+                    <small className="tariff-helper-text">
+                      Pilih tarif untuk mengisi harga otomatis, atau kosongkan
+                      untuk input manual.
+                    </small>
+                  </label>
+
+                  <label>
+                    <span>Nama Item</span>
+                    <input
+                      value={item.itemName}
+                      onChange={(event) =>
+                        updateCostItem(item.id, 'itemName', event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    <span>Kategori</span>
+                    <select
+                      value={item.category}
+                      onChange={(event) =>
+                        updateCostItem(
+                          item.id,
+                          'category',
+                          event.target.value as OperatingCostCategory,
+                        )
+                      }
+                    >
+                      <option value="Tindakan Dokter">Tindakan Dokter</option>
+                      <option value="Obat">Obat</option>
+                      <option value="Alat Kesehatan">Alat Kesehatan</option>
+                      <option value="Jasa Sarana">Jasa Sarana</option>
+                      <option value="Penunjang">Penunjang</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Qty</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(event) =>
+                        updateCostItem(
+                          item.id,
+                          'quantity',
+                          Number(event.target.value) || 1,
+                        )
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    <span>Harga Satuan Manual / Override</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={String(item.unitPrice)}
+                      onChange={(event) =>
+                        updateCostItem(
+                          item.id,
+                          'unitPrice',
+                          normalizeManualPrice(event.target.value),
+                        )
+                      }
+                      placeholder="Contoh: 750000"
+                    />
+                    <small className="tariff-helper-text">
+                      Harga dari master tarif tetap dapat disesuaikan manual.
+                    </small>
+                  </label>
+                </div>
+
+                <div className="operating-cost-subtotal">
+                  <span>Subtotal</span>
+                  <strong>
+                    {formatCurrency(item.quantity * item.unitPrice)}
+                  </strong>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="operating-billing-summary">
+            <div>
+              <span>Total Estimasi Biaya</span>
+              <strong>{formatCurrency(totalOperatingCost)}</strong>
+              <p>
+                Status: {isBillingSaved ? 'Draft tagihan tersimpan' : 'Belum dikirim ke kasir'}
+              </p>
+            </div>
+
+            <button type="button" onClick={saveOperatingBilling}>
+              Simpan Draft Tagihan Kasir
+            </button>
           </div>
         </section>
 
