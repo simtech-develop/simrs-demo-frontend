@@ -46,9 +46,86 @@ type EmergencyRow = {
   rm: string
   patient: string
   queue: string
+  doctor: string
+  payerType: 'Umum' | 'BPJS' | 'Asuransi'
+  insuranceNo: string
+  chiefComplaint: string
   triageLevel: 'Merah' | 'Kuning' | 'Hijau'
   status: 'Menunggu Triage' | 'Dalam Asesmen' | 'Triage Selesai'
 }
+
+const REGISTRATION_EDIT_STORAGE_KEY = 'simrs_registration_edit_overrides'
+
+type RegistrationEditOverride = {
+  id: string
+  rm: string
+  patient: string
+  nik: string
+  service: string
+  doctor?: string
+  type: string
+  payerType?: 'Umum' | 'BPJS' | 'Asuransi'
+  insuranceNo?: string
+  phone?: string
+  address?: string
+  gender?: 'Laki-laki' | 'Perempuan' | '-'
+  birthDate?: string
+  queue: string
+  status: 'Menunggu' | 'Terverifikasi' | 'Dilayani' | 'Dibatalkan'
+}
+
+const getRegistrationOverride = (
+  candidateKeys: Array<string | undefined | null>,
+): RegistrationEditOverride | null => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  try {
+    const currentValue = window.localStorage.getItem(
+      REGISTRATION_EDIT_STORAGE_KEY,
+    )
+
+    if (!currentValue) {
+      return null
+    }
+
+    const overrides = JSON.parse(currentValue) as Record<
+      string,
+      RegistrationEditOverride
+    >
+
+    const keys = candidateKeys.filter((key): key is string => Boolean(key))
+
+    for (const key of keys) {
+      if (overrides[key]) {
+        return overrides[key]
+      }
+    }
+
+    return null
+  } catch (error) {
+    console.error('Gagal membaca override pendaftaran untuk IGD:', error)
+    return null
+  }
+}
+
+const normalizeEmergencyPayerType = (
+  payerType?: RegistrationEditOverride['payerType'],
+): EmergencyRow['payerType'] => {
+  if (payerType === 'BPJS') {
+    return 'BPJS'
+  }
+
+  if (payerType === 'Asuransi') {
+    return 'Asuransi'
+  }
+
+  return 'Umum'
+}
+
+const isCanceledOverride = (override?: RegistrationEditOverride | null) =>
+  override?.status === 'Dibatalkan'
 
 function mapTriageLevel(level: EmergencyTriageApi): EmergencyRow['triageLevel'] {
   switch (level) {
@@ -78,6 +155,25 @@ function mapAssessmentStatus(
   }
 }
 
+function buildFallbackEmergencyAssessment(
+  registration: ApiRegistration,
+): ApiEmergencyAssessment {
+  return {
+    id: `fallback-emergency-assessment-${registration.id}`,
+    registrationId: registration.id,
+    triageLevel: 'GREEN',
+    chiefComplaint: registration.chiefComplaint ?? 'Keluhan belum diisi',
+    consciousness: '',
+    bloodPressure: '',
+    pulse: '',
+    respiratoryRate: '',
+    oxygenSaturation: '',
+    emergencyNote: '',
+    status: 'WAITING_TRIAGE',
+    assessedAt: null,
+  }
+}
+
 async function ensureEmergencyAssessment(registration: ApiRegistration) {
   try {
     return await api.get<ApiEmergencyAssessment>(
@@ -87,20 +183,60 @@ async function ensureEmergencyAssessment(registration: ApiRegistration) {
     const message = error instanceof Error ? error.message : ''
 
     if (!message.toLowerCase().includes('not found')) {
-      throw error
+      console.warn('Gagal membaca asesmen IGD, gunakan fallback:', message)
+      return buildFallbackEmergencyAssessment(registration)
     }
   }
 
-  return api.post<
-    ApiEmergencyAssessment,
-    {
-      registrationId: string
-      chiefComplaint?: string
+  try {
+    return await api.post<
+      ApiEmergencyAssessment,
+      {
+        registrationId: string
+        chiefComplaint?: string
+      }
+    >('/emergency-assessments', {
+      registrationId: registration.id,
+      chiefComplaint: registration.chiefComplaint ?? undefined,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+
+    if (
+      message.toLowerCase().includes('sudah dibuat') ||
+      message.toLowerCase().includes('already') ||
+      message.toLowerCase().includes('exists') ||
+      message.toLowerCase().includes('duplicate')
+    ) {
+      console.warn(
+        'Asesmen IGD sudah ada, gunakan fallback agar antrean tetap tampil:',
+        message,
+      )
+
+      return buildFallbackEmergencyAssessment(registration)
     }
-  >('/emergency-assessments', {
-    registrationId: registration.id,
-    chiefComplaint: registration.chiefComplaint ?? undefined,
-  })
+
+    console.warn('Gagal membuat asesmen IGD, gunakan fallback:', message)
+    return buildFallbackEmergencyAssessment(registration)
+  }
+}
+
+const isEmergencyRegistration = (registration: ApiRegistration) => {
+  const baseQueue = `IGD-${String(registration.queueNumber).padStart(3, '0')}`
+  const override = getRegistrationOverride([
+    registration.id,
+    registration.patient.medicalRecordNo,
+    registration.patient.fullName,
+    baseQueue,
+  ])
+
+  const service = override?.service || registration.clinic.name
+  const clinicCode = registration.clinic.code
+
+  return (
+    clinicCode === 'IGD' ||
+    service.toLowerCase().includes('igd')
+  )
 }
 
 function EmergencyPage() {
@@ -115,26 +251,53 @@ function EmergencyPage() {
     try {
       const registrations = await api.get<ApiRegistration[]>('/registrations')
 
-      const igdRegistrations = registrations.filter(
-        (registration) => registration.clinic.code === 'IGD',
-      )
+      const igdRegistrations = registrations.filter(isEmergencyRegistration)
 
       const rows = await Promise.all(
         igdRegistrations.map(async (registration) => {
-          const assessment = await ensureEmergencyAssessment(registration)
+          try {
+            const assessment = await ensureEmergencyAssessment(registration)
 
-          return {
-            registrationId: registration.id,
-            rm: registration.patient.medicalRecordNo,
-            patient: registration.patient.fullName,
-            queue: `IGD-${String(registration.queueNumber).padStart(3, '0')}`,
-            triageLevel: mapTriageLevel(assessment.triageLevel),
-            status: mapAssessmentStatus(assessment.status),
+            const baseQueue = `IGD-${String(registration.queueNumber).padStart(3, '0')}`
+            const override = getRegistrationOverride([
+              registration.id,
+              registration.patient.medicalRecordNo,
+              registration.patient.fullName,
+              baseQueue,
+            ])
+
+            if (isCanceledOverride(override)) {
+              return null
+            }
+
+            return {
+              registrationId: registration.id,
+              rm: override?.rm || registration.patient.medicalRecordNo,
+              patient: override?.patient || registration.patient.fullName,
+              queue:
+                override?.queue && override.queue !== '-'
+                  ? override.queue
+                  : baseQueue,
+              doctor: override?.doctor || 'Dokter IGD Belum Ditentukan',
+              payerType: normalizeEmergencyPayerType(override?.payerType),
+              insuranceNo: override?.insuranceNo || '-',
+              chiefComplaint:
+                assessment.chiefComplaint ||
+                registration.chiefComplaint ||
+                'Keluhan belum diisi',
+              triageLevel: mapTriageLevel(assessment.triageLevel),
+              status: mapAssessmentStatus(assessment.status),
+            }
+          } catch (error) {
+            console.warn('Pasien IGD gagal diproses, dilewati:', error)
+            return null
           }
         }),
       )
 
-      setEmergencyPatients(rows)
+      setEmergencyPatients(
+        rows.filter((row): row is EmergencyRow => Boolean(row)),
+      )
     } catch (error) {
       const message =
         error instanceof Error
@@ -189,6 +352,10 @@ function EmergencyPage() {
           <Link className="active" to="/igd">
             IGD
           </Link>
+
+          <Link to="/ruang-tindakan">Ruang Tindakan</Link>
+
+          <Link to="/rawat-inap">Rawat Inap</Link>
           <Link to="/rme">RME</Link>
           <Link to="/farmasi">Farmasi</Link>
           <Link to="/kasir">Kasir</Link>
@@ -277,7 +444,7 @@ function EmergencyPage() {
                 <tbody>
                   {isLoading && (
                     <tr>
-                      <td colSpan={6} className="empty-table-state">
+                      <td colSpan={10} className="empty-table-state">
                         Memuat pasien IGD dari backend...
                       </td>
                     </tr>
@@ -285,7 +452,7 @@ function EmergencyPage() {
 
                   {!isLoading && emergencyPatients.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="empty-table-state">
+                      <td colSpan={10} className="empty-table-state">
                         Belum ada pasien yang masuk ke layanan IGD.
                       </td>
                     </tr>

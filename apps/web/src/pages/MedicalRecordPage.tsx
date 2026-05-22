@@ -207,6 +207,8 @@ function MedicalRecordPage() {
           <Link to="/pendaftaran">Pendaftaran</Link>
           <Link to="/rawat-jalan">Rawat Jalan</Link>
           <Link to="/igd">IGD</Link>
+          <Link to="/ruang-tindakan">Ruang Tindakan</Link>
+          <Link to="/rawat-inap">Rawat Inap</Link>
           <Link className="active" to="/rme">
             RME
           </Link>

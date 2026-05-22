@@ -16,6 +16,7 @@ import CashierPage from './pages/CashierPage'
 import CashierDetailPage from './pages/CashierDetailPage'
 import ReportPage from './pages/ReportPage'
 import EmergencyPage from './pages/EmergencyPage'
+import OperatingRoomPage from './pages/OperatingRoomPage'
 import EmergencyAssessmentPage from './pages/EmergencyAssessmentPage'
 import EmergencyMedicalRecordDetailPage from './pages/EmergencyMedicalRecordDetailPage'
 
@@ -50,6 +51,7 @@ function App() {
       <Route path="/kasir/detail/:id" element={<CashierDetailPage />} />
       <Route path="/laporan" element={<ReportPage />} />
       <Route path="/igd" element={<EmergencyPage />} />
+      <Route path="/ruang-tindakan" element={<OperatingRoomPage />} />
       <Route path="/igd/asesmen/:id" element={<EmergencyAssessmentPage />} />
      
       <Route path="/igd/asesmen/:id" element={<EmergencyAssessmentPage />} />
