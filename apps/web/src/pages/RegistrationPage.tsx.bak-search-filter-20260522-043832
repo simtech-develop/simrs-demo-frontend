@@ -404,9 +404,6 @@ const mergeRegistrationWithOverride = (
 function RegistrationPage() {
   const [registrations, setRegistrations] = useState<RegistrationRow[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [doctorFilter, setDoctorFilter] = useState('all')
-  const [visitTypeFilter, setVisitTypeFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -478,71 +475,20 @@ function RegistrationPage() {
     ]
   }, [registrations])
 
-  const doctorFilterOptions = useMemo(() => {
-    const doctors = registrations
-      .map((registration) => registration.doctor)
-      .filter((doctor): doctor is string => Boolean(doctor && doctor !== '-'))
-
-    return Array.from(new Set(doctors)).sort()
-  }, [registrations])
-
   const filteredRegistrations = useMemo(() => {
     const keyword = searchTerm.toLowerCase().trim()
 
-    return registrations.filter((row) => {
-      const searchableText = [
-        row.rm,
-        row.patient,
-        row.nik,
-        row.service,
-        row.doctor,
-        row.type,
-        row.queue,
-        row.status,
-        row.payerType,
-        row.insuranceNo,
-      ]
-        .filter(Boolean)
+    if (!keyword) {
+      return registrations
+    }
+
+    return registrations.filter((row) =>
+      [row.rm, row.patient, row.nik, row.service, row.doctor, row.queue]
         .join(' ')
         .toLowerCase()
-
-      const matchesKeyword = !keyword || searchableText.includes(keyword)
-
-      const matchesDoctor =
-        doctorFilter === 'all' ||
-        (doctorFilter === 'unassigned'
-          ? !row.doctor || row.doctor === '-'
-          : row.doctor === doctorFilter)
-
-      const matchesVisitType =
-        visitTypeFilter === 'all' ||
-        row.type === visitTypeFilter ||
-        row.service === visitTypeFilter ||
-        (visitTypeFilter === 'IGD' &&
-          (row.service === 'IGD' || row.type === 'IGD')) ||
-        (visitTypeFilter === 'Rujukan FKTP' && row.type.includes('Rujukan')) ||
-        (visitTypeFilter === 'Kontrol Ulang' &&
-          (row.type === 'Pasien Lama' || row.type === 'Kontrol Ulang')) ||
-        (visitTypeFilter === 'Datang Langsung' &&
-          (row.type === 'Pasien Baru' || row.type === 'Pasien Lama'))
-
-      const matchesStatus =
-        statusFilter === 'all' || row.status === statusFilter
-
-      return (
-        matchesKeyword &&
-        matchesDoctor &&
-        matchesVisitType &&
-        matchesStatus
-      )
-    })
-  }, [
-    registrations,
-    searchTerm,
-    doctorFilter,
-    visitTypeFilter,
-    statusFilter,
-  ])
+        .includes(keyword),
+    )
+  }, [registrations, searchTerm])
 
   const buildEditableRegistration = (
     registration: RegistrationRow,
@@ -689,21 +635,8 @@ function RegistrationPage() {
     closeEditModal()
   }
 
-  const handleSearchPatient = () => {
-    document
-      .querySelector('.registration-table-panel')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
-  const resetRegistrationSearch = () => {
-    setSearchTerm('')
-    setDoctorFilter('all')
-    setVisitTypeFilter('all')
-    setStatusFilter('all')
-  }
-
   const refreshData = () => {
-    resetRegistrationSearch()
+    setSearchTerm('')
     void loadRegistrations()
   }
 
@@ -792,12 +725,22 @@ function RegistrationPage() {
                 <label>
                   <span>Dokter Penanggung Jawab</span>
                   <select
-                    value={doctorFilter}
-                    onChange={(event) => setDoctorFilter(event.target.value)}
+                    value={selectedRegistration?.doctor ?? '-'}
+                    onChange={(event) =>
+                      setSelectedRegistration((currentRegistration) =>
+                        currentRegistration
+                          ? {
+                              ...currentRegistration,
+                              doctor: event.target.value,
+                            }
+                          : currentRegistration,
+                      )
+                    }
                   >
-                    <option value="all">Semua Dokter</option>
-                    <option value="unassigned">Belum Ditentukan</option>
-                    {doctorFilterOptions.map((doctor) => (
+                    <option value="-">Belum Ditentukan</option>
+                    {getDoctorOptionsByService(
+                      selectedRegistration?.service ?? 'Poli Umum',
+                    ).map((doctor: string) => (
                       <option value={doctor} key={doctor}>
                         {doctor}
                       </option>
@@ -807,49 +750,35 @@ function RegistrationPage() {
 
                 <label>
                   <span>Jenis Kunjungan</span>
-                  <select
-                    value={visitTypeFilter}
-                    onChange={(event) => setVisitTypeFilter(event.target.value)}
-                  >
-                    <option value="all">Semua Jenis Kunjungan</option>
+                  <select defaultValue="all">
+                    <option value="all">Semua</option>
                     {visitChannels.map((channel) => (
                       <option value={channel} key={channel}>
                         {channel}
                       </option>
                     ))}
-                    <option value="Pasien Baru">Pasien Baru</option>
-                    <option value="Pasien Lama">Pasien Lama</option>
-                    <option value="Rujukan">Rujukan</option>
                   </select>
                 </label>
 
                 <label>
                   <span>Status Registrasi</span>
-                  <select
-                    value={statusFilter}
-                    onChange={(event) => setStatusFilter(event.target.value)}
-                  >
+                  <select defaultValue="all">
                     <option value="all">Semua Status</option>
-                    <option value="Menunggu">Menunggu</option>
-                    <option value="Terverifikasi">Terverifikasi</option>
-                    <option value="Dilayani">Dilayani</option>
-                    <option value="Dibatalkan">Dibatalkan</option>
+                    <option value="waiting">Menunggu</option>
+                    <option value="verified">Terverifikasi</option>
+                    <option value="served">Dilayani</option>
                   </select>
                 </label>
               </div>
 
               <div className="search-action-row">
-                <button
-                  className="search-primary-button"
-                  type="button"
-                  onClick={handleSearchPatient}
-                >
+                <button className="search-primary-button" type="button">
                   Cari Pasien
                 </button>
                 <button
                   className="search-secondary-button"
                   type="button"
-                  onClick={resetRegistrationSearch}
+                  onClick={() => setSearchTerm('')}
                 >
                   Reset Filter
                 </button>
