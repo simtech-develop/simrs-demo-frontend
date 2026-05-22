@@ -120,6 +120,30 @@ const dummyBpjsRegistrationPatients = [
   },
 ]
 
+const buildFallbackRegistrationRows = (): RegistrationRow[] =>
+  dummyBpjsRegistrationPatients.map((patient, index) => {
+    const service = patient.service || 'Poli Umum'
+    const queuePrefix = getQueuePrefixByService(service)
+
+    return {
+      id: `demo-registration-${index + 1}`,
+      rm: `RM-2026-${String(821518 + index).padStart(6, '0')}`,
+      patient: patient.patient,
+      nik: patient.nik,
+      service,
+      doctor: getDefaultDoctorName(service),
+      type: service === 'IGD' ? 'IGD' : index === 0 ? 'Pasien Baru' : 'Pasien Lama',
+      payerType: patient.payerType,
+      insuranceNo: patient.insuranceNo,
+      phone: patient.phone,
+      address: patient.address,
+      gender: patient.gender,
+      birthDate: patient.birthDate,
+      queue: `${queuePrefix}-${String(index + 1).padStart(3, '0')}`,
+      status: 'Menunggu',
+    }
+  })
+
 const getDefaultBpjsNumber = (nik: string, patientName = '') => {
   const normalizedNik = nik.trim()
   const normalizedName = patientName.toLowerCase().trim()
@@ -483,8 +507,8 @@ function RegistrationPage() {
           ? error.message
           : 'Gagal memuat data pendaftaran dari backend.'
 
-      setRegistrations([])
-      setLoadError(message)
+      setRegistrations(buildFallbackRegistrationRows().map(mergeRegistrationWithOverride))
+      setLoadError(`${message} Data demo lokal ditampilkan sebagai fallback.`)
     } finally {
       setIsLoading(false)
     }

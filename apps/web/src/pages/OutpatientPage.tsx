@@ -164,6 +164,31 @@ function mapRegistrationToQueue(
   }
 }
 
+const fallbackOutpatientQueueRows: OutpatientQueueRow[] = [
+  {
+    id: 'demo-registration-1',
+    queue: 'PU-001',
+    rm: 'RM-2026-821518',
+    patient: 'Ujang',
+    service: 'Poli Umum',
+    doctor: 'dr. Andi Pratama',
+    payerType: 'Umum',
+    insuranceNo: '-',
+    status: 'Menunggu',
+  },
+  {
+    id: 'demo-registration-3',
+    queue: 'PD-001',
+    rm: 'RM-2026-821520',
+    patient: 'Jamilah',
+    service: 'Poli Penyakit Dalam',
+    doctor: 'dr. Bima Santoso, Sp.PD',
+    payerType: 'BPJS',
+    insuranceNo: '0001457823999',
+    status: 'Menunggu',
+  },
+]
+
 function OutpatientPage() {
   const [outpatientQueue, setOutpatientQueue] = useState<OutpatientQueueRow[]>(
     [],
@@ -190,8 +215,8 @@ function OutpatientPage() {
           ? error.message
           : 'Gagal memuat antrean rawat jalan dari backend.'
 
-      setOutpatientQueue([])
-      setLoadError(message)
+      setOutpatientQueue(fallbackOutpatientQueueRows)
+      setLoadError(`${message} Data demo lokal ditampilkan sebagai fallback.`)
     } finally {
       setIsLoading(false)
     }
