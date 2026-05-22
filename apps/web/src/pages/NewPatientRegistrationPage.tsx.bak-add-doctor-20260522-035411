@@ -3,51 +3,6 @@ import type { FormEvent } from 'react'
 import { Link } from 'react-router'
 import { api } from '../lib/api'
 
-const doctorOptionsByService: Record<string, string[]> = {
-  'Poli Umum': [
-    'dr. Andi Pratama',
-    'dr. Rina Marlina',
-  ],
-  'IGD': [
-    'dr. Reza Firmansyah',
-    'dr. Maya Lestari',
-    'dr. Dimas Aditya',
-  ],
-  'Poli Penyakit Dalam': [
-    'dr. Budi Santoso, Sp.PD',
-    'dr. Farhan Maulana, Sp.PD',
-  ],
-  'Poli Anak': [
-    'dr. Siti Rahma, Sp.A',
-    'dr. Nadia Paramitha, Sp.A',
-  ],
-  'Poli Bedah': [
-    'dr. Agus Wijaya, Sp.B',
-    'dr. Hendra Saputra, Sp.B',
-  ],
-  'Poli Kandungan': [
-    'dr. Rina Marlina, Sp.OG',
-    'dr. Dewi Kartika, Sp.OG',
-  ],
-  'Poli Gigi': [
-    'drg. Indah Permatasari',
-    'drg. Yoga Pratama',
-  ],
-  'Laboratorium': [
-    'dr. Fitri Handayani, Sp.PK',
-  ],
-  'Radiologi': [
-    'dr. Arif Nugroho, Sp.Rad',
-  ],
-}
-
-const getDoctorOptionsByService = (service: string) =>
-  doctorOptionsByService[service] ?? doctorOptionsByService['Poli Umum']
-
-const getDefaultDoctorName = (service: string) =>
-  getDoctorOptionsByService(service)[0] ?? '-'
-
-
 const guarantorOptions = [
   'Umum',
   'BPJS Kesehatan',
@@ -55,72 +10,13 @@ const guarantorOptions = [
   'Perusahaan',
 ]
 
-const dummyBpjsPatients = [
-  {
-    label: 'BPJS - Ujang / Kelas II',
-    nik: '5634563456345635',
-    fullName: 'Ujang',
-    birthPlace: 'Cianjur',
-    birthDate: '1999-08-15',
-    gender: 'L',
-    maritalStatus: 'Belum Menikah',
-    phone: '08124567894213',
-    email: 'ujang.bpjs@example.com',
-    address: 'Jl. Dendek No.29',
-    district: 'Cibarekbeg',
-    city: 'Cianjur',
-    guarantor: 'BPJS Kesehatan',
-    guarantorNumber: '0001234567890',
-    careClass: 'Kelas II',
-    patientStatus: 'Pasien Baru',
-    destination: 'Poli Umum',
-    visitType: 'Datang Langsung',
-    initialComplaint: 'Pemeriksaan pertama',
-  },
-  {
-    label: 'BPJS - Slamet Riyadi / IGD',
-    nik: '3275010101010001',
-    fullName: 'Slamet Riyadi',
-    birthPlace: 'Bandung',
-    birthDate: '1988-04-12',
-    gender: 'L',
-    maritalStatus: 'Menikah',
-    phone: '081298765432',
-    email: 'slamet.riyadi@example.com',
-    address: 'Jl. Melati Raya No.12',
-    district: 'Cimahi Tengah',
-    city: 'Cimahi',
-    guarantor: 'BPJS Kesehatan',
-    guarantorNumber: '0009876543210',
-    careClass: 'Kelas I',
-    patientStatus: 'Pasien Lama',
-    destination: 'IGD',
-    visitType: 'IGD',
-    initialComplaint: 'Demam tinggi dan lemas sejak pagi',
-  },
-  {
-    label: 'BPJS - Jamilah / Penyakit Dalam',
-    nik: '2435624362436426',
-    fullName: 'Jamilah',
-    birthPlace: 'Garut',
-    birthDate: '1979-11-21',
-    gender: 'P',
-    maritalStatus: 'Menikah',
-    phone: '082112345678',
-    email: 'jamilah.bpjs@example.com',
-    address: 'Kp. Sukamaju RT 02 RW 04',
-    district: 'Tarogong Kidul',
-    city: 'Garut',
-    guarantor: 'BPJS Kesehatan',
-    guarantorNumber: '0004567891234',
-    careClass: 'Kelas III',
-    patientStatus: 'Pasien Lama',
-    destination: 'Poli Penyakit Dalam',
-    visitType: 'Rujukan FKTP',
-    initialComplaint: 'Kontrol tekanan darah dan gula darah',
-  },
+const visitDestinationOptions = [
+  'Poli Umum',
+  'Poli Penyakit Dalam',
+  'Poli Anak',
+  'Poli Bedah',
+  'IGD',
 ]
-
 
 type PatientForm = {
   nik: string
@@ -202,8 +98,6 @@ const initialForm: PatientForm = {
 
 function NewPatientRegistrationPage() {
   const [form, setForm] = useState<PatientForm>(initialForm)
-  const [selectedService, setSelectedService] = useState('Poli Umum')
-  const [selectedDoctor, setSelectedDoctor] = useState(getDefaultDoctorName('Poli Umum'))
   const [isSaved, setIsSaved] = useState(false)
   const [, setIsSaving] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -288,12 +182,12 @@ function NewPatientRegistrationPage() {
     try {
       const clinics = await api.get<ClinicApiResponse[]>('/clinics')
       const selectedClinic = clinics.find(
-        (clinic) => clinic.name === selectedService,
+        (clinic) => clinic.name === form.destination,
       )
 
       if (!selectedClinic) {
         throw new Error(
-          `Tujuan layanan "${selectedService}" belum tersedia di backend.`,
+          `Tujuan layanan "${form.destination}" belum tersedia di backend.`,
         )
       }
 
@@ -351,35 +245,6 @@ function NewPatientRegistrationPage() {
     }
   }
 
-  const applyDummyBpjsPatient = (dummyPatient: typeof dummyBpjsPatients[number]) => {
-    setForm((currentForm) => ({
-      ...currentForm,
-      nik: dummyPatient.nik,
-      fullName: dummyPatient.fullName,
-      birthPlace: dummyPatient.birthPlace,
-      birthDate: dummyPatient.birthDate,
-      gender: dummyPatient.gender,
-      maritalStatus: dummyPatient.maritalStatus,
-      phone: dummyPatient.phone,
-      email: dummyPatient.email,
-      address: dummyPatient.address,
-      district: dummyPatient.district,
-      city: dummyPatient.city,
-      guarantor: dummyPatient.guarantor,
-      guarantorNumber: dummyPatient.guarantorNumber,
-      careClass: dummyPatient.careClass,
-      patientStatus: dummyPatient.patientStatus,
-      destination: dummyPatient.destination,
-      visitType: dummyPatient.visitType,
-      initialComplaint: dummyPatient.initialComplaint,
-    }))
-
-    setSelectedService(dummyPatient.destination)
-    setSelectedDoctor(getDefaultDoctorName(dummyPatient.destination))
-    setIsSaved(false)
-    setSubmitError('')
-  }
-
   const resetForm = () => {
     setForm(initialForm)
     setIsSaved(false)
@@ -387,8 +252,6 @@ function NewPatientRegistrationPage() {
     setSubmitError('')
     setSavedRegistration(null)
     setShowValidation(false)
-    setSelectedService('Poli Umum')
-    setSelectedDoctor(getDefaultDoctorName('Poli Umum'))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -638,38 +501,6 @@ function NewPatientRegistrationPage() {
               </div>
 
               <div className="form-grid two-columns">
-              <div className="dummy-bpjs-panel">
-                <div>
-                  <strong>Dummy Data BPJS</strong>
-                  <span>
-                    Gunakan data simulasi untuk demo pendaftaran pasien BPJS.
-                  </span>
-                </div>
-
-                <select
-                  defaultValue=""
-                  onChange={(event) => {
-                    const selectedDummy = dummyBpjsPatients.find(
-                      (patient) => patient.guarantorNumber === event.target.value,
-                    )
-
-                    if (selectedDummy) {
-                      applyDummyBpjsPatient(selectedDummy)
-                    }
-                  }}
-                >
-                  <option value="">Pilih dummy pasien BPJS</option>
-                  {dummyBpjsPatients.map((patient) => (
-                    <option
-                      value={patient.guarantorNumber}
-                      key={patient.guarantorNumber}
-                    >
-                      {patient.label} - {patient.guarantorNumber}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
                 <label>
                   <span>Jenis Penjamin</span>
                   <select
@@ -736,36 +567,13 @@ function NewPatientRegistrationPage() {
                 <label>
                   <span>Tujuan Layanan</span>
                   <select
-                    name="service"
-                    value={selectedService}
-                    onChange={(event) => {
-                      const nextService = event.target.value
-                      setSelectedService(nextService)
-                      setSelectedDoctor(getDefaultDoctorName(nextService))
-                    }}
+                    value={form.destination}
+                    onChange={(event) => updateField('destination', event.target.value)}
                   >
-                    <option value="Poli Umum">Poli Umum</option>
-                    <option value="IGD">IGD</option>
-                    <option value="Poli Penyakit Dalam">Poli Penyakit Dalam</option>
-                    <option value="Poli Anak">Poli Anak</option>
-                    <option value="Poli Bedah">Poli Bedah</option>
-                    <option value="Poli Kandungan">Poli Kandungan</option>
-                    <option value="Poli Gigi">Poli Gigi</option>
-                    <option value="Laboratorium">Laboratorium</option>
-                    <option value="Radiologi">Radiologi</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Dokter Sesuai Poli / Unit</span>
-                  <select
-                    name="doctorName"
-                    value={selectedDoctor}
-                    onChange={(event) => setSelectedDoctor(event.target.value)}
-                  >
-                    {getDoctorOptionsByService(selectedService).map((doctor) => (
-                      <option value={doctor} key={doctor}>
-                        {doctor}
+                    <option value="">Pilih tujuan layanan</option>
+                    {visitDestinationOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
                       </option>
                     ))}
                   </select>
