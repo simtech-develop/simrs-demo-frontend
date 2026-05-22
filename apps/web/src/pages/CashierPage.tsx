@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
+import { simrsStorageKeys } from '../services/simrsStorageKeys'
 
 type PaymentStatus =
   | 'Belum Dibayar'
@@ -76,12 +77,12 @@ type CashierQueuePatient = {
   items: BillingItem[]
 }
 
-const operatingCostStorageKey = 'simrs_operating_room_costs'
-const inpatientAdmissionStorageKey = 'simrs_inpatient_admission_demo'
-const inpatientDailyCareStorageKey = 'simrs_inpatient_daily_care_demo'
-const rmeCashierBillingStorageKey = 'simrs_rme_cashier_billing_demo'
-const cashierPaymentStorageKey = 'simrs_cashier_payment_demo'
-const pharmacyQueueStorageKey = 'simrs_pharmacy_queue_demo'
+const operatingCostStorageKey = simrsStorageKeys.operatingRoomCosts
+const inpatientAdmissionStorageKey = simrsStorageKeys.inpatientAdmission
+const inpatientDailyCareStorageKey = simrsStorageKeys.inpatientDailyCare
+const rmeCashierBillingStorageKey = simrsStorageKeys.rmeCashierBilling
+const cashierPaymentStorageKey = simrsStorageKeys.cashierPayment
+const pharmacyQueueStorageKey = simrsStorageKeys.pharmacyQueue
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('id-ID', {
