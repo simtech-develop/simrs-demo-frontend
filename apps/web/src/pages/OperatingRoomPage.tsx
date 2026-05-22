@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
+import { writeStorage } from '../services/simrsStorage'
+import { simrsStorageKeys } from '../services/simrsStorageKeys'
 
 type PostActionDecision = 'Pulang Setelah Tindakan' | 'Setuju Rawat Inap'
 
@@ -139,7 +141,7 @@ const hospitalTariffMaster: HospitalTariffItem[] = [
   },
 ]
 
-const operatingCostStorageKey = 'simrs_operating_room_costs'
+const operatingCostStorageKey = simrsStorageKeys.operatingRoomCosts
 
 const operatingCostCategoryOrder: OperatingCostCategory[] = [
   'Tindakan Dokter',
@@ -325,10 +327,7 @@ function OperatingRoomPage() {
       savedAt: new Date().toISOString(),
     }
 
-    window.localStorage.setItem(
-      operatingCostStorageKey,
-      JSON.stringify(billingPayload),
-    )
+    writeStorage(operatingCostStorageKey, billingPayload)
 
     setIsBillingSaved(true)
   }
