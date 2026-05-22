@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router'
 import { api } from '../lib/api'
+import { writeStorage } from '../services/simrsStorage'
+import { simrsStorageKeys } from '../services/simrsStorageKeys'
 
 type RegistrationStatus =
   | 'WAITING'
@@ -103,8 +105,6 @@ const normalizeVitalTyping = (field: keyof ExamForm, value: string) => {
 
   return unit ? stripVitalUnit(value, unit) : value
 }
-
-const outpatientExamStorageKey = 'simrs_outpatient_exam_demo'
 
 const emptyExamForm: ExamForm = {
   chiefComplaint: '',
@@ -323,10 +323,7 @@ const saveOutpatientExamFallback = (
     source: 'localStorage demo fallback',
   }
 
-  window.localStorage.setItem(
-    outpatientExamStorageKey,
-    JSON.stringify(fallbackRecord),
-  )
+  writeStorage(simrsStorageKeys.outpatientExam, fallbackRecord)
 
   return fallbackRecord
 }
