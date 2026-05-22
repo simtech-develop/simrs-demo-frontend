@@ -6071,3 +6071,161 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Guarantor CRUD */
+.guarantor-crud-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 0;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.54);
+}
+
+.guarantor-crud-header span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.guarantor-crud-header strong {
+  color: #f8fafc;
+  font-size: 22px;
+}
+
+.add-guarantor-button {
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.16);
+  color: #bae6fd;
+  cursor: pointer;
+  padding: 10px 16px;
+  font-weight: 700;
+}
+
+.guarantor-card-list {
+  display: grid;
+  gap: 14px;
+}
+
+.guarantor-card {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 20px;
+  background: rgba(15, 23, 42, 0.66);
+  padding: 18px;
+}
+
+.guarantor-card.primary {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.guarantor-card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.guarantor-card-title small {
+  display: block;
+  color: #7dd3fc;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.guarantor-card-title strong {
+  color: #f8fafc;
+  font-size: 17px;
+}
+
+.guarantor-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.guarantor-actions button {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.74);
+  color: #e2e8f0;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-weight: 700;
+}
+
+.guarantor-actions button:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+  color: #bae6fd;
+}
+
+.guarantor-actions button.danger {
+  border-color: rgba(239, 68, 68, 0.36);
+  color: #fca5a5;
+}
+
+@media (max-width: 768px) {
+  .guarantor-crud-header,
+  .guarantor-card-title {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .guarantor-actions {
+    width: 100%;
+  }
+
+  .guarantor-actions button,
+  .add-guarantor-button {
+    width: 100%;
+  }
+}
+
+/* Emergency vital input unit */
+.vital-input-with-unit {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.vital-input-with-unit input {
+  width: 100%;
+  padding-right: 92px;
+}
+
+.vital-input-with-unit span {
+  position: absolute;
+  right: 14px;
+  color: #7dd3fc;
+  font-size: 13px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* Emergency vital input unit */
+.vital-input-with-unit {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.vital-input-with-unit input {
+  width: 100%;
+  padding-right: 92px;
+}
+
+.vital-input-with-unit span {
+  position: absolute;
+  right: 14px;
+  color: #7dd3fc;
+  font-size: 13px;
+  font-weight: 700;
+  pointer-events: none;
+}

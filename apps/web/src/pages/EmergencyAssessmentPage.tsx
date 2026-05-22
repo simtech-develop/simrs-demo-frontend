@@ -73,6 +73,43 @@ type EmergencyAssessmentForm = {
   status: AssessmentStatusUi
 }
 
+const emergencyVitalUnitByField: Partial<
+  Record<keyof EmergencyAssessmentForm, string>
+> = {
+  bloodPressure: 'mmHg',
+  pulse: 'x/menit',
+  respiratoryRate: 'x/menit',
+  oxygenSaturation: '%',
+}
+
+const stripEmergencyVitalUnit = (value: string, unit: string) =>
+  value
+    .replace(new RegExp(`\\s*${unit.replace('/', '\\/')}\\s*$`, 'i'), '')
+    .trim()
+
+const normalizeEmergencyVitalTyping = (
+  field: keyof EmergencyAssessmentForm,
+  value: string,
+) => {
+  const unit = emergencyVitalUnitByField[field]
+
+  return unit ? stripEmergencyVitalUnit(value, unit) : value
+}
+
+const normalizeEmergencyVitalValue = (
+  field: keyof EmergencyAssessmentForm,
+  value: string,
+) => {
+  const unit = emergencyVitalUnitByField[field]
+  const cleanValue = unit ? stripEmergencyVitalUnit(value, unit) : value.trim()
+
+  if (!unit || cleanValue === '') {
+    return cleanValue
+  }
+
+  return `${cleanValue} ${unit}`
+}
+
 function mapTriageApiToUi(level: TriageLevelApi): TriageLevelUi {
   switch (level) {
     case 'RED':
@@ -282,6 +319,20 @@ function EmergencyAssessmentPage() {
     if (submitError) {
       setSubmitError('')
     }
+  }
+
+  const updateVitalFieldTyping = (
+    field: keyof EmergencyAssessmentForm,
+    value: string,
+  ) => {
+    updateField(field, normalizeEmergencyVitalTyping(field, value) as never)
+  }
+
+  const finalizeVitalField = (
+    field: keyof EmergencyAssessmentForm,
+    value: string,
+  ) => {
+    updateField(field, normalizeEmergencyVitalValue(field, value) as never)
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -553,51 +604,71 @@ function EmergencyAssessmentPage() {
               <div className="form-grid two-columns">
                 <label>
                   <span>Tekanan Darah</span>
-                  <input
-                    type="text"
-                    value={assessment.bloodPressure}
-                    onChange={(event) =>
-                      updateField('bloodPressure', event.target.value)
-                    }
-                    placeholder="Contoh: 110/70 mmHg"
-                  />
-                </label>
+                  <div className="vital-input-with-unit">
+                    <input
+                      value={assessment.bloodPressure}
+                      onChange={(event) =>
+                        updateVitalFieldTyping('bloodPressure', event.target.value)
+                      }
+                      onBlur={(event) =>
+                        finalizeVitalField('bloodPressure', event.target.value)
+                      }
+                      placeholder="Contoh: 120/80"
+                    />
+                    <span>{emergencyVitalUnitByField.bloodPressure}</span>
+                  </div>
+                  </label>
 
                 <label>
                   <span>Nadi</span>
-                  <input
-                    type="text"
-                    value={assessment.pulse}
-                    onChange={(event) =>
-                      updateField('pulse', event.target.value)
-                    }
-                    placeholder="Contoh: 96 x/menit"
-                  />
-                </label>
+                  <div className="vital-input-with-unit">
+                    <input
+                      value={assessment.pulse}
+                      onChange={(event) =>
+                        updateVitalFieldTyping('pulse', event.target.value)
+                      }
+                      onBlur={(event) =>
+                        finalizeVitalField('pulse', event.target.value)
+                      }
+                      placeholder="Contoh: 88"
+                    />
+                    <span>{emergencyVitalUnitByField.pulse}</span>
+                  </div>
+                  </label>
 
                 <label>
                   <span>Respirasi</span>
-                  <input
-                    type="text"
-                    value={assessment.respiratoryRate}
-                    onChange={(event) =>
-                      updateField('respiratoryRate', event.target.value)
-                    }
-                    placeholder="Contoh: 22 x/menit"
-                  />
-                </label>
+                  <div className="vital-input-with-unit">
+                    <input
+                      value={assessment.respiratoryRate}
+                      onChange={(event) =>
+                        updateVitalFieldTyping('respiratoryRate', event.target.value)
+                      }
+                      onBlur={(event) =>
+                        finalizeVitalField('respiratoryRate', event.target.value)
+                      }
+                      placeholder="Contoh: 22"
+                    />
+                    <span>{emergencyVitalUnitByField.respiratoryRate}</span>
+                  </div>
+                  </label>
 
                 <label>
                   <span>Saturasi Oksigen</span>
-                  <input
-                    type="text"
-                    value={assessment.oxygenSaturation}
-                    onChange={(event) =>
-                      updateField('oxygenSaturation', event.target.value)
-                    }
-                    placeholder="Contoh: 97%"
-                  />
-                </label>
+                  <div className="vital-input-with-unit">
+                    <input
+                      value={assessment.oxygenSaturation}
+                      onChange={(event) =>
+                        updateVitalFieldTyping('oxygenSaturation', event.target.value)
+                      }
+                      onBlur={(event) =>
+                        finalizeVitalField('oxygenSaturation', event.target.value)
+                      }
+                      placeholder="Contoh: 98"
+                    />
+                    <span>{emergencyVitalUnitByField.oxygenSaturation}</span>
+                  </div>
+                  </label>
 
                 <label className="full-span">
                   <span>Catatan IGD</span>
