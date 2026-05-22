@@ -2,107 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { api } from '../lib/api'
 
-const REGISTRATION_EDIT_STORAGE_KEY = 'simrs_registration_edit_overrides'
-
-type RegistrationEditOverride = {
-  id: string
-  rm: string
-  patient: string
-  nik: string
-  service: string
-  doctor?: string
-  type: string
-  payerType?: 'Umum' | 'BPJS' | 'Asuransi'
-  insuranceNo?: string
-  phone?: string
-  address?: string
-  gender?: 'Laki-laki' | 'Perempuan' | '-'
-  birthDate?: string
-  queue: string
-  status: 'Menunggu' | 'Terverifikasi' | 'Dilayani' | 'Dibatalkan'
-}
-
-const getRegistrationEditOverride = (
-  candidateKeys: Array<string | undefined | null>,
-): RegistrationEditOverride | null => {
-  if (typeof window === 'undefined') {
-    return null
-  }
-
-  try {
-    const currentValue = window.localStorage.getItem(
-      REGISTRATION_EDIT_STORAGE_KEY,
-    )
-
-    const currentOverrides: Record<string, RegistrationEditOverride> =
-      currentValue ? JSON.parse(currentValue) : {}
-
-    const urlKey = window.location.pathname.split('/').filter(Boolean).at(-1)
-
-    const keys = [...candidateKeys, urlKey].filter(
-      (key): key is string => Boolean(key),
-    )
-
-    for (const key of keys) {
-      if (currentOverrides[key]) {
-        return currentOverrides[key]
-      }
-    }
-
-    const lastEditValue = window.localStorage.getItem(
-      'simrs_last_registration_edit',
-    )
-
-    if (lastEditValue) {
-      const lastEdit = JSON.parse(lastEditValue) as RegistrationEditOverride
-
-      const hasSamePatient =
-        keys.includes(lastEdit.id) ||
-        keys.includes(lastEdit.rm) ||
-        keys.includes(lastEdit.nik) ||
-        keys.includes(lastEdit.queue) ||
-        keys.includes(lastEdit.patient)
-
-      if (hasSamePatient) {
-        return lastEdit
-      }
-    }
-
-    return null
-  } catch (error) {
-    console.error('Gagal membaca override edit registrasi:', error)
-    return null
-  }
-}
-
-const formatEditedBirthDate = (value?: string) => {
-  if (!value || value === '-') {
-    return '-'
-  }
-
-  const parts = value.split('-')
-
-  if (parts.length !== 3) {
-    return value
-  }
-
-  return `${parts[2]}/${parts[1]}/${parts[0]}`
-}
-
-const mapEditedPayerType = (payerType?: string) => {
-  if (payerType === 'BPJS') {
-    return 'BPJS Kesehatan'
-  }
-
-  if (payerType === 'Asuransi') {
-    return 'Asuransi / Perusahaan'
-  }
-
-  return 'Umum / Mandiri'
-}
-
-
-
 type ApiRegistrationStatus =
   | 'WAITING'
   | 'IN_SERVICE'
@@ -349,126 +248,6 @@ function RegistrationDetailPage() {
     )
   }
 
-  const registrationAny = registration as any
-
-  const rawMedicalRecordNo =
-    registrationAny?.medicalRecordNo ||
-    registrationAny?.medicalRecordNumber ||
-    registrationAny?.patient?.medicalRecordNo ||
-    registrationAny?.patient?.medicalRecordNumber ||
-    registrationAny?.patient ||
-    ''
-
-  const rawNationalId =
-    registrationAny?.nationalId ||
-    registrationAny?.nik ||
-    registrationAny?.patientNationalId ||
-    registrationAny?.patient?.nationalId ||
-    ''
-
-  const rawPatientName =
-    registrationAny?.patientName ||
-    registrationAny?.fullName ||
-    registrationAny?.patientFullName ||
-    registrationAny?.patient?.fullName ||
-    registrationAny?.patient ||
-    ''
-
-  const rawQueue =
-    registrationAny?.queue ||
-    registrationAny?.queueNumberLabel ||
-    registrationAny?.queueLabel ||
-    (registrationAny?.queueNumber
-      ? `${registrationAny?.clinicCode || registrationAny?.clinic?.code || 'UMUM'}-${String(
-          registrationAny.queueNumber,
-        ).padStart(3, '0')}`
-      : '')
-
-  const editedRegistration = getRegistrationEditOverride([
-    String(registrationAny?.id || ''),
-    rawMedicalRecordNo,
-    rawNationalId,
-    rawPatientName,
-    rawQueue,
-  ])
-
-  const displayMedicalRecordNo = editedRegistration?.rm || rawMedicalRecordNo || '-'
-  const displayNationalId = editedRegistration?.nik || rawNationalId || '-'
-  const displayPatientName = editedRegistration?.patient || rawPatientName || '-'
-
-  const displayGender =
-    editedRegistration?.gender && editedRegistration.gender !== '-'
-      ? editedRegistration.gender
-      : registrationAny?.gender === 'MALE'
-        ? 'Laki-laki'
-        : registrationAny?.gender === 'FEMALE'
-          ? 'Perempuan'
-          : registrationAny?.patient?.gender === 'MALE'
-            ? 'Laki-laki'
-            : registrationAny?.patient?.gender === 'FEMALE'
-              ? 'Perempuan'
-              : registrationAny?.gender ||
-                registrationAny?.patientGender ||
-                registrationAny?.patient?.gender ||
-                '-'
-
-  const displayBirthDate =
-    editedRegistration?.birthDate && editedRegistration.birthDate !== '-'
-      ? formatEditedBirthDate(editedRegistration.birthDate)
-      : registrationAny?.birthDate
-        ? formatDate(registrationAny.birthDate)
-        : registrationAny?.patient?.birthDate
-          ? formatDate(registrationAny.patient.birthDate)
-          : registrationAny?.patientBirthDate || '-'
-
-  const displayPhone =
-    editedRegistration?.phone ||
-    registrationAny?.phone ||
-    registrationAny?.patientPhone ||
-    registrationAny?.patient?.phone ||
-    '-'
-
-  const displayAddress =
-    editedRegistration?.address ||
-    registrationAny?.address ||
-    registrationAny?.patientAddress ||
-    registrationAny?.patient?.address ||
-    '-'
-
-  const displayService =
-    editedRegistration?.service ||
-    registrationAny?.clinicName ||
-    registrationAny?.service ||
-    registrationAny?.serviceName ||
-    registrationAny?.clinic?.name ||
-    '-'
-
-  const displayDoctor =
-    editedRegistration?.doctor && editedRegistration.doctor !== '-'
-      ? editedRegistration.doctor
-      : registrationAny?.doctorName ||
-        registrationAny?.doctor?.fullName ||
-        registrationAny?.doctor ||
-        '-'
-
-  const displayQueue = editedRegistration?.queue || rawQueue || '-'
-
-  const displayStatus =
-    editedRegistration?.status ||
-    registrationAny?.statusLabel ||
-    registrationAny?.status ||
-    '-'
-
-  const displayPayerType = mapEditedPayerType(editedRegistration?.payerType)
-
-  const displayInsuranceNo =
-    editedRegistration?.insuranceNo && editedRegistration.insuranceNo !== '-'
-      ? editedRegistration.insuranceNo
-      : registrationAny?.insuranceNo ||
-        registrationAny?.guarantorNo ||
-        registrationAny?.guarantorNumber ||
-        '-'
-
   return (
     <main className="registration-detail-app">
       <aside className="dashboard-sidebar-pro">
@@ -606,27 +385,27 @@ function RegistrationDetailPage() {
             <div className="detail-item-grid">
               <div>
                 <span>No. Rekam Medis</span>
-                <strong>{displayMedicalRecordNo}</strong>
+                <strong>{registration.rm}</strong>
               </div>
               <div>
                 <span>NIK</span>
-                <strong>{displayNationalId}</strong>
+                <strong>{registration.nik}</strong>
               </div>
               <div>
                 <span>Nama Pasien</span>
-                <strong>{displayPatientName}</strong>
+                <strong>{registration.patient}</strong>
               </div>
               <div>
                 <span>Jenis Kelamin</span>
-                <strong>{displayGender}</strong>
+                <strong>{displayValue(registration.gender)}</strong>
               </div>
               <div>
                 <span>Tanggal Lahir</span>
-                <strong>{displayBirthDate}</strong>
+                <strong>{displayValue(registration.birthDate)}</strong>
               </div>
               <div>
                 <span>Nomor HP</span>
-                <strong>{displayPhone}</strong>
+                <strong>{displayValue(registration.phone)}</strong>
               </div>
             </div>
           </article>
@@ -648,29 +427,19 @@ function RegistrationDetailPage() {
               </div>
               <div>
                 <span>Tujuan Layanan</span>
-                <strong>{displayService}</strong>
+                <strong>{registration.service}</strong>
               </div>
               <div>
                 <span>Dokter</span>
-                <strong>{displayDoctor}</strong>
+                <strong>{displayValue(registration.doctorName)}</strong>
               </div>
-              <div>
-                <span>Penjamin Pasien</span>
-                <strong>{displayPayerType}</strong>
-              </div>
-
-              <div>
-                <span>No. BPJS / Asuransi</span>
-                <strong>{displayInsuranceNo}</strong>
-              </div>
-
               <div>
                 <span>Nomor Antrean</span>
-                <strong>{displayQueue}</strong>
+                <strong>{registration.queue}</strong>
               </div>
               <div>
                 <span>Status Registrasi</span>
-                <strong>{displayStatus}</strong>
+                <strong>{registration.status}</strong>
               </div>
             </div>
           </article>
@@ -684,7 +453,7 @@ function RegistrationDetailPage() {
             <div className="detail-long-grid">
               <div>
                 <span>Alamat</span>
-                <strong>{displayAddress}</strong>
+                <strong>{displayValue(registration.address)}</strong>
               </div>
               <div>
                 <span>Keluhan Awal</span>

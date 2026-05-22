@@ -267,140 +267,6 @@ function normalizePayerType(
   return 'Umum'
 }
 
-const REGISTRATION_EDIT_STORAGE_KEY = 'simrs_registration_edit_overrides'
-
-const saveRegistrationEditOverride = (registration: RegistrationRow) => {
-  try {
-    const currentValue = window.localStorage.getItem(
-      REGISTRATION_EDIT_STORAGE_KEY,
-    )
-
-    const currentOverrides: Record<string, RegistrationRow> = currentValue
-      ? JSON.parse(currentValue)
-      : {}
-
-    const overrideKeys = [
-      registration.id,
-      registration.rm,
-      registration.nik,
-      registration.queue,
-      registration.patient,
-    ].filter(Boolean)
-
-    overrideKeys.forEach((key) => {
-      currentOverrides[key] = registration
-    })
-
-    window.localStorage.setItem(
-      REGISTRATION_EDIT_STORAGE_KEY,
-      JSON.stringify(currentOverrides),
-    )
-
-    window.localStorage.setItem(
-      'simrs_last_registration_edit',
-      JSON.stringify(registration),
-    )
-  } catch (error) {
-    console.error('Gagal menyimpan override edit registrasi:', error)
-  }
-}
-
-
-const getQueuePrefixByService = (service: string) => {
-  const normalizedService = service.toLowerCase()
-
-  if (normalizedService.includes('igd')) {
-    return 'IGD'
-  }
-
-  if (normalizedService.includes('penyakit dalam')) {
-    return 'PD'
-  }
-
-  if (normalizedService.includes('anak')) {
-    return 'ANAK'
-  }
-
-  if (normalizedService.includes('bedah')) {
-    return 'BDH'
-  }
-
-  if (normalizedService.includes('kandungan')) {
-    return 'OBG'
-  }
-
-  if (normalizedService.includes('gigi')) {
-    return 'GIGI'
-  }
-
-  if (normalizedService.includes('laboratorium')) {
-    return 'LAB'
-  }
-
-  if (normalizedService.includes('radiologi')) {
-    return 'RAD'
-  }
-
-  return 'UMUM'
-}
-
-const normalizeQueueByService = (service: string, currentQueue: string) => {
-  const prefix = getQueuePrefixByService(service)
-  const queueNumber = currentQueue.split('-')[1] || '001'
-
-  return `${prefix}-${queueNumber}`
-}
-
-const getRegistrationEditOverride = (
-  registration: Partial<RegistrationRow>,
-): RegistrationRow | null => {
-  if (typeof window === 'undefined') {
-    return null
-  }
-
-  try {
-    const currentValue = window.localStorage.getItem(
-      REGISTRATION_EDIT_STORAGE_KEY,
-    )
-
-    if (!currentValue) {
-      return null
-    }
-
-    const currentOverrides = JSON.parse(currentValue) as Record<
-      string,
-      RegistrationRow
-    >
-
-    const candidateKeys = [
-      registration.id,
-      registration.rm,
-      registration.nik,
-      registration.queue,
-      registration.patient,
-    ].filter((key): key is string => Boolean(key))
-
-    for (const key of candidateKeys) {
-      if (currentOverrides[key]) {
-        return currentOverrides[key]
-      }
-    }
-
-    return null
-  } catch (error) {
-    console.error('Gagal membaca override edit registrasi:', error)
-    return null
-  }
-}
-
-const mergeRegistrationWithOverride = (
-  registration: RegistrationRow,
-): RegistrationRow => {
-  const override = getRegistrationEditOverride(registration)
-
-  return override ? { ...registration, ...override } : registration
-}
-
 function RegistrationPage() {
   const [registrations, setRegistrations] = useState<RegistrationRow[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -416,7 +282,7 @@ function RegistrationPage() {
 
     try {
       const response = await api.get<ApiRegistration[]>('/registrations')
-      setRegistrations(response.map(mapRegistration).map(mergeRegistrationWithOverride))
+      setRegistrations(response.map(mapRegistration))
     } catch (error) {
       const message =
         error instanceof Error
@@ -534,10 +400,7 @@ function RegistrationPage() {
   }
 
   const openEditModal = async (registration: RegistrationRow) => {
-    const latestRegistration =
-      getRegistrationEditOverride(registration) || registration
-
-    setSelectedRegistration(buildEditableRegistration(latestRegistration))
+    setSelectedRegistration(buildEditableRegistration(registration))
     setIsEditModalOpen(true)
 
     try {
@@ -545,24 +408,9 @@ function RegistrationPage() {
         `/registrations/${registration.id}`,
       )
 
-      const detailRegistration = buildEditableRegistration(
-        latestRegistration,
-        detail,
-      )
-
-      const latestOverride =
-        getRegistrationEditOverride(detailRegistration) ||
-        getRegistrationEditOverride(latestRegistration)
-
-      setSelectedRegistration(latestOverride || detailRegistration)
+      setSelectedRegistration(buildEditableRegistration(registration, detail))
     } catch (error) {
       console.error('Gagal memuat detail pendaftaran untuk edit:', error)
-
-      const fallbackOverride = getRegistrationEditOverride(latestRegistration)
-
-      if (fallbackOverride) {
-        setSelectedRegistration(fallbackOverride)
-      }
     }
   }
 
@@ -603,10 +451,6 @@ function RegistrationPage() {
 
     const normalizedRegistration: RegistrationRow = {
       ...selectedRegistration,
-      queue: normalizeQueueByService(
-        selectedRegistration.service,
-        selectedRegistration.queue,
-      ),
       insuranceNo:
         selectedRegistration.payerType === 'BPJS' &&
         (!selectedRegistration.insuranceNo ||
@@ -629,8 +473,6 @@ function RegistrationPage() {
           : registration,
       ),
     )
-
-    saveRegistrationEditOverride(normalizedRegistration)
 
     closeEditModal()
   }
@@ -1064,19 +906,11 @@ function RegistrationPage() {
                   <select
                     value={selectedRegistration.service}
                     onChange={(event) =>
-                      setSelectedRegistration((currentRegistration) =>
-                        currentRegistration
-                          ? {
-                              ...currentRegistration,
-                              service: event.target.value,
-                              doctor: getDefaultDoctorName(event.target.value),
-                              queue: normalizeQueueByService(
-                                event.target.value,
-                                currentRegistration.queue,
-                              ),
-                            }
-                          : currentRegistration,
-                      )
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        service: event.target.value,
+                        doctor: getDefaultDoctorName(event.target.value),
+                      })
                     }
                   >
                     <option value="Poli Umum">Poli Umum</option>
@@ -1090,31 +924,6 @@ function RegistrationPage() {
                     <option value="Poli Gigi">Poli Gigi</option>
                     <option value="Laboratorium">Laboratorium</option>
                     <option value="Radiologi">Radiologi</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Dokter Penanggung Jawab</span>
-                  <select
-                    value={selectedRegistration?.doctor ?? getDefaultDoctorName(selectedRegistration?.service ?? 'Poli Umum')}
-                    onChange={(event) =>
-                      setSelectedRegistration((currentRegistration) =>
-                        currentRegistration
-                          ? {
-                              ...currentRegistration,
-                              doctor: event.target.value,
-                            }
-                          : currentRegistration,
-                      )
-                    }
-                  >
-                    {getDoctorOptionsByService(
-                      selectedRegistration?.service ?? 'Poli Umum',
-                    ).map((doctor: string) => (
-                      <option value={doctor} key={doctor}>
-                        {doctor}
-                      </option>
-                    ))}
                   </select>
                 </label>
 

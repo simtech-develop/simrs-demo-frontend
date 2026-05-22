@@ -279,32 +279,16 @@ const saveRegistrationEditOverride = (registration: RegistrationRow) => {
       ? JSON.parse(currentValue)
       : {}
 
-    const overrideKeys = [
-      registration.id,
-      registration.rm,
-      registration.nik,
-      registration.queue,
-      registration.patient,
-    ].filter(Boolean)
-
-    overrideKeys.forEach((key) => {
-      currentOverrides[key] = registration
-    })
+    currentOverrides[registration.id] = registration
 
     window.localStorage.setItem(
       REGISTRATION_EDIT_STORAGE_KEY,
       JSON.stringify(currentOverrides),
     )
-
-    window.localStorage.setItem(
-      'simrs_last_registration_edit',
-      JSON.stringify(registration),
-    )
   } catch (error) {
     console.error('Gagal menyimpan override edit registrasi:', error)
   }
 }
-
 
 const getQueuePrefixByService = (service: string) => {
   const normalizedService = service.toLowerCase()
@@ -351,56 +335,6 @@ const normalizeQueueByService = (service: string, currentQueue: string) => {
   return `${prefix}-${queueNumber}`
 }
 
-const getRegistrationEditOverride = (
-  registration: Partial<RegistrationRow>,
-): RegistrationRow | null => {
-  if (typeof window === 'undefined') {
-    return null
-  }
-
-  try {
-    const currentValue = window.localStorage.getItem(
-      REGISTRATION_EDIT_STORAGE_KEY,
-    )
-
-    if (!currentValue) {
-      return null
-    }
-
-    const currentOverrides = JSON.parse(currentValue) as Record<
-      string,
-      RegistrationRow
-    >
-
-    const candidateKeys = [
-      registration.id,
-      registration.rm,
-      registration.nik,
-      registration.queue,
-      registration.patient,
-    ].filter((key): key is string => Boolean(key))
-
-    for (const key of candidateKeys) {
-      if (currentOverrides[key]) {
-        return currentOverrides[key]
-      }
-    }
-
-    return null
-  } catch (error) {
-    console.error('Gagal membaca override edit registrasi:', error)
-    return null
-  }
-}
-
-const mergeRegistrationWithOverride = (
-  registration: RegistrationRow,
-): RegistrationRow => {
-  const override = getRegistrationEditOverride(registration)
-
-  return override ? { ...registration, ...override } : registration
-}
-
 function RegistrationPage() {
   const [registrations, setRegistrations] = useState<RegistrationRow[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -416,7 +350,7 @@ function RegistrationPage() {
 
     try {
       const response = await api.get<ApiRegistration[]>('/registrations')
-      setRegistrations(response.map(mapRegistration).map(mergeRegistrationWithOverride))
+      setRegistrations(response.map(mapRegistration))
     } catch (error) {
       const message =
         error instanceof Error
@@ -534,10 +468,7 @@ function RegistrationPage() {
   }
 
   const openEditModal = async (registration: RegistrationRow) => {
-    const latestRegistration =
-      getRegistrationEditOverride(registration) || registration
-
-    setSelectedRegistration(buildEditableRegistration(latestRegistration))
+    setSelectedRegistration(buildEditableRegistration(registration))
     setIsEditModalOpen(true)
 
     try {
@@ -545,24 +476,9 @@ function RegistrationPage() {
         `/registrations/${registration.id}`,
       )
 
-      const detailRegistration = buildEditableRegistration(
-        latestRegistration,
-        detail,
-      )
-
-      const latestOverride =
-        getRegistrationEditOverride(detailRegistration) ||
-        getRegistrationEditOverride(latestRegistration)
-
-      setSelectedRegistration(latestOverride || detailRegistration)
+      setSelectedRegistration(buildEditableRegistration(registration, detail))
     } catch (error) {
       console.error('Gagal memuat detail pendaftaran untuk edit:', error)
-
-      const fallbackOverride = getRegistrationEditOverride(latestRegistration)
-
-      if (fallbackOverride) {
-        setSelectedRegistration(fallbackOverride)
-      }
     }
   }
 

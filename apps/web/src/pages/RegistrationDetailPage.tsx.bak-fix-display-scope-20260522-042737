@@ -23,9 +23,9 @@ type RegistrationEditOverride = {
 }
 
 const getRegistrationEditOverride = (
-  candidateKeys: Array<string | undefined | null>,
+  registrationId?: string,
 ): RegistrationEditOverride | null => {
-  if (typeof window === 'undefined') {
+  if (!registrationId || typeof window === 'undefined') {
     return null
   }
 
@@ -34,41 +34,16 @@ const getRegistrationEditOverride = (
       REGISTRATION_EDIT_STORAGE_KEY,
     )
 
-    const currentOverrides: Record<string, RegistrationEditOverride> =
-      currentValue ? JSON.parse(currentValue) : {}
-
-    const urlKey = window.location.pathname.split('/').filter(Boolean).at(-1)
-
-    const keys = [...candidateKeys, urlKey].filter(
-      (key): key is string => Boolean(key),
-    )
-
-    for (const key of keys) {
-      if (currentOverrides[key]) {
-        return currentOverrides[key]
-      }
+    if (!currentValue) {
+      return null
     }
 
-    const lastEditValue = window.localStorage.getItem(
-      'simrs_last_registration_edit',
-    )
+    const currentOverrides = JSON.parse(currentValue) as Record<
+      string,
+      RegistrationEditOverride
+    >
 
-    if (lastEditValue) {
-      const lastEdit = JSON.parse(lastEditValue) as RegistrationEditOverride
-
-      const hasSamePatient =
-        keys.includes(lastEdit.id) ||
-        keys.includes(lastEdit.rm) ||
-        keys.includes(lastEdit.nik) ||
-        keys.includes(lastEdit.queue) ||
-        keys.includes(lastEdit.patient)
-
-      if (hasSamePatient) {
-        return lastEdit
-      }
-    }
-
-    return null
+    return currentOverrides[registrationId] ?? null
   } catch (error) {
     console.error('Gagal membaca override edit registrasi:', error)
     return null
@@ -100,7 +75,6 @@ const mapEditedPayerType = (payerType?: string) => {
 
   return 'Umum / Mandiri'
 }
-
 
 
 type ApiRegistrationStatus =
@@ -322,7 +296,64 @@ function RegistrationDetailPage() {
   }
 
   if (isLoading) {
-    return (
+    const editedRegistration = getRegistrationEditOverride(registration?.id)
+
+  const displayMedicalRecordNo =
+    editedRegistration?.rm || registration?.patient?.medicalRecordNo || '-'
+
+  const displayNationalId =
+    editedRegistration?.nik || registration?.patient?.nationalId || '-'
+
+  const displayPatientName =
+    editedRegistration?.patient || registration?.patient?.fullName || '-'
+
+  const displayGender =
+    editedRegistration?.gender && editedRegistration.gender !== '-'
+      ? editedRegistration.gender
+      : registration?.patient?.gender === 'MALE'
+        ? 'Laki-laki'
+        : registration?.patient?.gender === 'FEMALE'
+          ? 'Perempuan'
+          : '-'
+
+  const displayBirthDate =
+    editedRegistration?.birthDate && editedRegistration.birthDate !== '-'
+      ? formatEditedBirthDate(editedRegistration.birthDate)
+      : registration?.patient?.birthDate
+        ? formatDate(registration.patient.birthDate)
+        : '-'
+
+  const displayPhone =
+    editedRegistration?.phone || registration?.patient?.phone || '-'
+
+  const displayAddress =
+    editedRegistration?.address || registration?.patient?.address || '-'
+
+  const displayService =
+    editedRegistration?.service || registration?.clinic?.name || '-'
+
+  const displayDoctor =
+    editedRegistration?.doctor && editedRegistration.doctor !== '-'
+      ? editedRegistration.doctor
+      : registration?.doctor?.fullName || '-'
+
+  const displayQueue =
+    editedRegistration?.queue ||
+    `${registration?.clinic?.code || 'UMUM'}-${String(
+      registration?.queueNumber || 1,
+    ).padStart(3, '0')}`
+
+  const displayStatus =
+    editedRegistration?.status || registrationStatusLabel
+
+  const displayPayerType = mapEditedPayerType(editedRegistration?.payerType)
+
+  const displayInsuranceNo =
+    editedRegistration?.insuranceNo && editedRegistration.insuranceNo !== '-'
+      ? editedRegistration.insuranceNo
+      : '-'
+
+  return (
       <main className="detail-not-found-page">
         <section className="detail-not-found-card">
           <small>Memuat Data</small>
@@ -348,126 +379,6 @@ function RegistrationDetailPage() {
       </main>
     )
   }
-
-  const registrationAny = registration as any
-
-  const rawMedicalRecordNo =
-    registrationAny?.medicalRecordNo ||
-    registrationAny?.medicalRecordNumber ||
-    registrationAny?.patient?.medicalRecordNo ||
-    registrationAny?.patient?.medicalRecordNumber ||
-    registrationAny?.patient ||
-    ''
-
-  const rawNationalId =
-    registrationAny?.nationalId ||
-    registrationAny?.nik ||
-    registrationAny?.patientNationalId ||
-    registrationAny?.patient?.nationalId ||
-    ''
-
-  const rawPatientName =
-    registrationAny?.patientName ||
-    registrationAny?.fullName ||
-    registrationAny?.patientFullName ||
-    registrationAny?.patient?.fullName ||
-    registrationAny?.patient ||
-    ''
-
-  const rawQueue =
-    registrationAny?.queue ||
-    registrationAny?.queueNumberLabel ||
-    registrationAny?.queueLabel ||
-    (registrationAny?.queueNumber
-      ? `${registrationAny?.clinicCode || registrationAny?.clinic?.code || 'UMUM'}-${String(
-          registrationAny.queueNumber,
-        ).padStart(3, '0')}`
-      : '')
-
-  const editedRegistration = getRegistrationEditOverride([
-    String(registrationAny?.id || ''),
-    rawMedicalRecordNo,
-    rawNationalId,
-    rawPatientName,
-    rawQueue,
-  ])
-
-  const displayMedicalRecordNo = editedRegistration?.rm || rawMedicalRecordNo || '-'
-  const displayNationalId = editedRegistration?.nik || rawNationalId || '-'
-  const displayPatientName = editedRegistration?.patient || rawPatientName || '-'
-
-  const displayGender =
-    editedRegistration?.gender && editedRegistration.gender !== '-'
-      ? editedRegistration.gender
-      : registrationAny?.gender === 'MALE'
-        ? 'Laki-laki'
-        : registrationAny?.gender === 'FEMALE'
-          ? 'Perempuan'
-          : registrationAny?.patient?.gender === 'MALE'
-            ? 'Laki-laki'
-            : registrationAny?.patient?.gender === 'FEMALE'
-              ? 'Perempuan'
-              : registrationAny?.gender ||
-                registrationAny?.patientGender ||
-                registrationAny?.patient?.gender ||
-                '-'
-
-  const displayBirthDate =
-    editedRegistration?.birthDate && editedRegistration.birthDate !== '-'
-      ? formatEditedBirthDate(editedRegistration.birthDate)
-      : registrationAny?.birthDate
-        ? formatDate(registrationAny.birthDate)
-        : registrationAny?.patient?.birthDate
-          ? formatDate(registrationAny.patient.birthDate)
-          : registrationAny?.patientBirthDate || '-'
-
-  const displayPhone =
-    editedRegistration?.phone ||
-    registrationAny?.phone ||
-    registrationAny?.patientPhone ||
-    registrationAny?.patient?.phone ||
-    '-'
-
-  const displayAddress =
-    editedRegistration?.address ||
-    registrationAny?.address ||
-    registrationAny?.patientAddress ||
-    registrationAny?.patient?.address ||
-    '-'
-
-  const displayService =
-    editedRegistration?.service ||
-    registrationAny?.clinicName ||
-    registrationAny?.service ||
-    registrationAny?.serviceName ||
-    registrationAny?.clinic?.name ||
-    '-'
-
-  const displayDoctor =
-    editedRegistration?.doctor && editedRegistration.doctor !== '-'
-      ? editedRegistration.doctor
-      : registrationAny?.doctorName ||
-        registrationAny?.doctor?.fullName ||
-        registrationAny?.doctor ||
-        '-'
-
-  const displayQueue = editedRegistration?.queue || rawQueue || '-'
-
-  const displayStatus =
-    editedRegistration?.status ||
-    registrationAny?.statusLabel ||
-    registrationAny?.status ||
-    '-'
-
-  const displayPayerType = mapEditedPayerType(editedRegistration?.payerType)
-
-  const displayInsuranceNo =
-    editedRegistration?.insuranceNo && editedRegistration.insuranceNo !== '-'
-      ? editedRegistration.insuranceNo
-      : registrationAny?.insuranceNo ||
-        registrationAny?.guarantorNo ||
-        registrationAny?.guarantorNumber ||
-        '-'
 
   return (
     <main className="registration-detail-app">
