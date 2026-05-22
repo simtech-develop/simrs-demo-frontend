@@ -8055,3 +8055,1288 @@
     width: 100%;
   }
 }
+
+/* Correct discharge flow: inpatient -> cashier -> pharmacy */
+.inpatient-discharge-actions {
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  padding-top: 16px;
+}
+
+.inpatient-action-bar .primary-cashier-link {
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  border: 0 !important;
+  color: #f0fdf4 !important;
+  min-width: 230px;
+  text-align: center;
+  justify-content: center;
+}
+
+.cashier-action-bar .cashier-pharmacy-link {
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  border: 0 !important;
+  color: #f0fdf4 !important;
+  min-width: 240px;
+  text-align: center;
+  justify-content: center;
+}
+
+.cashier-action-bar a:last-child {
+  background: rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  color: #e2e8f0;
+}
+
+/* Cashier sync billing from inpatient and operating room */
+.cashier-patient-panel,
+.cashier-billing-panel,
+.cashier-payment-panel {
+  margin-top: 18px;
+}
+
+.cashier-info-grid,
+.cashier-summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  margin-top: 16px;
+}
+
+.cashier-summary-grid {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+}
+
+.cashier-info-grid div,
+.cashier-summary-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.62);
+  padding: 14px;
+}
+
+.cashier-info-grid span,
+.cashier-summary-grid span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.cashier-info-grid strong,
+.cashier-summary-grid strong {
+  color: #f8fafc;
+}
+
+.cashier-table-wrap {
+  overflow-x: auto;
+  margin-top: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+}
+
+.cashier-billing-table {
+  width: 100%;
+  min-width: 880px;
+  border-collapse: collapse;
+}
+
+.cashier-billing-table th,
+.cashier-billing-table td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 14px;
+  text-align: left;
+}
+
+.cashier-billing-table th {
+  color: #7dd3fc;
+  background: rgba(2, 6, 23, 0.44);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cashier-billing-table td {
+  color: #e2e8f0;
+}
+
+.cashier-empty-state {
+  border: 1px dashed rgba(148, 163, 184, 0.32);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.46);
+  color: #94a3b8;
+  margin-top: 16px;
+  padding: 18px;
+}
+
+.cashier-status-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.cashier-status-buttons button {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.58);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 52px;
+  padding: 12px;
+}
+
+.cashier-status-buttons button.active {
+  border-color: rgba(34, 197, 94, 0.58);
+  background: rgba(22, 163, 74, 0.16);
+  color: #f0fdf4;
+}
+
+.cashier-note-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.cashier-note-field textarea {
+  width: 100%;
+  min-height: 96px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.66);
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 15px;
+  padding: 13px 15px;
+  resize: vertical;
+  outline: none;
+}
+
+.cashier-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.cashier-action-bar button,
+.cashier-action-bar a {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #eff6ff;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 12px 18px;
+  text-decoration: none;
+}
+
+.cashier-action-bar button:nth-child(2) {
+  background: rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.cashier-action-bar .cashier-pharmacy-link {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #f0fdf4;
+}
+
+@media (max-width: 1100px) {
+  .cashier-info-grid,
+  .cashier-summary-grid,
+  .cashier-status-buttons {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .cashier-info-grid,
+  .cashier-summary-grid,
+  .cashier-status-buttons {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cashier guarantor verification */
+.cashier-guarantor-verification {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr);
+  gap: 16px;
+  margin-top: 18px;
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  border-radius: 18px;
+  background: rgba(14, 165, 233, 0.08);
+  padding: 16px;
+}
+
+.cashier-guarantor-verification small {
+  display: block;
+  color: #7dd3fc;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.cashier-guarantor-verification h3 {
+  color: #f8fafc;
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+
+.cashier-guarantor-verification p {
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.cashier-verification-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.cashier-verification-grid label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.42);
+  color: #e2e8f0;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 12px;
+}
+
+.cashier-verification-grid input {
+  width: 18px;
+  height: 18px;
+  accent-color: #22c55e;
+}
+
+.cashier-verification-grid input:disabled + span {
+  color: #64748b;
+}
+
+@media (max-width: 900px) {
+  .cashier-guarantor-verification {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Pharmacy module sync with inpatient and cashier */
+.pharmacy-patient-panel,
+.pharmacy-order-panel,
+.pharmacy-process-panel {
+  margin-top: 18px;
+}
+
+.pharmacy-info-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  margin-top: 16px;
+}
+
+.pharmacy-info-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.62);
+  padding: 14px;
+}
+
+.pharmacy-info-grid span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.pharmacy-info-grid strong {
+  color: #f8fafc;
+}
+
+.pharmacy-order-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  margin-top: 16px;
+}
+
+.pharmacy-order-grid article {
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.62);
+  padding: 16px;
+}
+
+.pharmacy-order-grid h3 {
+  color: #f8fafc;
+  font-size: 18px;
+  margin: 0 0 12px;
+}
+
+.pharmacy-order-grid span {
+  display: block;
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  border-radius: 999px;
+  background: rgba(22, 163, 74, 0.1);
+  color: #bbf7d0;
+  font-weight: 700;
+  margin-bottom: 8px;
+  padding: 9px 12px;
+}
+
+.pharmacy-order-grid p {
+  color: #94a3b8;
+  margin: 0;
+}
+
+.pharmacy-warning-card {
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  border-radius: 16px;
+  background: rgba(251, 191, 36, 0.1);
+  color: #fde68a;
+  line-height: 1.6;
+  margin-top: 16px;
+  padding: 14px;
+}
+
+.pharmacy-status-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.pharmacy-status-buttons button {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.58);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 52px;
+  padding: 12px;
+}
+
+.pharmacy-status-buttons button.active {
+  border-color: rgba(34, 197, 94, 0.58);
+  background: rgba(22, 163, 74, 0.16);
+  color: #f0fdf4;
+}
+
+.pharmacy-status-buttons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pharmacy-note-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.pharmacy-note-field textarea {
+  width: 100%;
+  min-height: 96px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.66);
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 15px;
+  padding: 13px 15px;
+  resize: vertical;
+  outline: none;
+}
+
+.pharmacy-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.pharmacy-action-bar button,
+.pharmacy-action-bar a {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #eff6ff;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 12px 18px;
+  text-decoration: none;
+}
+
+.pharmacy-action-bar button:nth-child(2) {
+  background: rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.pharmacy-action-bar a {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #f0fdf4;
+}
+
+@media (max-width: 1100px) {
+  .pharmacy-info-grid,
+  .pharmacy-order-grid,
+  .pharmacy-status-buttons {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .pharmacy-info-grid,
+  .pharmacy-order-grid,
+  .pharmacy-status-buttons {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Pharmacy queue */
+.pharmacy-queue-panel {
+  margin-top: 18px;
+}
+
+.pharmacy-queue-table-wrap {
+  overflow-x: auto;
+  margin-top: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+}
+
+.pharmacy-queue-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.pharmacy-queue-table th,
+.pharmacy-queue-table td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 14px;
+  text-align: left;
+}
+
+.pharmacy-queue-table th {
+  color: #7dd3fc;
+  background: rgba(2, 6, 23, 0.44);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pharmacy-queue-table td {
+  color: #e2e8f0;
+}
+
+.pharmacy-queue-table tr.active td {
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.pharmacy-queue-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.pharmacy-queue-table button {
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.14);
+  color: #bae6fd;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+.pharmacy-queue-table button:hover {
+  border-color: rgba(56, 189, 248, 0.72);
+  background: rgba(14, 165, 233, 0.22);
+  color: #e0f2fe;
+}
+
+.pharmacy-status-pill {
+  display: inline-flex;
+  border: 1px solid rgba(34, 197, 94, 0.26);
+  border-radius: 999px;
+  background: rgba(22, 163, 74, 0.12);
+  color: #bbf7d0;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
+/* Cashier patient queue */
+.cashier-queue-panel {
+  margin-top: 18px;
+}
+
+.cashier-queue-table-wrap {
+  overflow-x: auto;
+  margin-top: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+}
+
+.cashier-queue-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.cashier-queue-table th,
+.cashier-queue-table td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 14px;
+  text-align: left;
+}
+
+.cashier-queue-table th {
+  color: #7dd3fc;
+  background: rgba(2, 6, 23, 0.44);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cashier-queue-table td {
+  color: #e2e8f0;
+}
+
+.cashier-queue-table tr.active td {
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.cashier-queue-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.cashier-queue-table button {
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.14);
+  color: #bae6fd;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+.cashier-queue-table button:hover {
+  border-color: rgba(56, 189, 248, 0.72);
+  background: rgba(14, 165, 233, 0.22);
+  color: #e0f2fe;
+}
+
+.cashier-queue-status-pill {
+  display: inline-flex;
+  border: 1px solid rgba(34, 197, 94, 0.26);
+  border-radius: 999px;
+  background: rgba(22, 163, 74, 0.12);
+  color: #bbf7d0;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
+/* RME next flow */
+.rme-next-flow-panel {
+  margin-top: 18px;
+  border-color: rgba(34, 197, 94, 0.26);
+}
+
+.rme-next-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.rme-next-flow-card {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.68);
+  color: #e2e8f0;
+  padding: 18px;
+  text-decoration: none;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.rme-next-flow-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(14, 165, 233, 0.12);
+  text-decoration: none;
+}
+
+.rme-next-flow-card.primary {
+  border-color: rgba(34, 197, 94, 0.46);
+  background: rgba(22, 163, 74, 0.12);
+}
+
+.rme-next-flow-card span {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(14, 165, 233, 0.18);
+  color: #7dd3fc;
+  font-weight: 900;
+  margin-bottom: 12px;
+}
+
+.rme-next-flow-card.primary span {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+}
+
+.rme-next-flow-card strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.rme-next-flow-card p {
+  color: #94a3b8;
+  line-height: 1.55;
+  margin: 0;
+}
+
+@media (max-width: 1000px) {
+  .rme-next-flow-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* RME to Cashier flow */
+.rme-cashier-flow-panel {
+  margin-top: 18px;
+  border-color: rgba(34, 197, 94, 0.26);
+}
+
+.rme-cashier-action-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  border-radius: 18px;
+  background: rgba(22, 163, 74, 0.1);
+  margin-top: 16px;
+  padding: 18px;
+}
+
+.rme-cashier-action-card strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.rme-cashier-action-card p {
+  color: #bbf7d0;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.rme-cashier-action-card button {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #f0fdf4;
+  cursor: pointer;
+  font-weight: 900;
+  min-width: 240px;
+  padding: 13px 18px;
+}
+
+/* Cashier queue and medicine approval */
+.cashier-queue-panel,
+.cashier-patient-panel,
+.cashier-billing-panel,
+.cashier-payment-panel {
+  margin-top: 18px;
+}
+
+.cashier-queue-table-wrap,
+.cashier-table-wrap {
+  overflow-x: auto;
+  margin-top: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+}
+
+.cashier-queue-table,
+.cashier-billing-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.cashier-queue-table th,
+.cashier-queue-table td,
+.cashier-billing-table th,
+.cashier-billing-table td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 14px;
+  text-align: left;
+}
+
+.cashier-queue-table th,
+.cashier-billing-table th {
+  color: #7dd3fc;
+  background: rgba(2, 6, 23, 0.44);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cashier-queue-table td,
+.cashier-billing-table td {
+  color: #e2e8f0;
+}
+
+.cashier-queue-table tr.active td {
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.cashier-queue-table button {
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.14);
+  color: #bae6fd;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+.cashier-queue-status-pill {
+  display: inline-flex;
+  border: 1px solid rgba(34, 197, 94, 0.26);
+  border-radius: 999px;
+  background: rgba(22, 163, 74, 0.12);
+  color: #bbf7d0;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
+.cashier-info-grid,
+.cashier-summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  margin-top: 16px;
+}
+
+.cashier-summary-grid {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+}
+
+.cashier-info-grid div,
+.cashier-summary-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.62);
+  padding: 14px;
+}
+
+.cashier-info-grid span,
+.cashier-summary-grid span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.cashier-info-grid strong,
+.cashier-summary-grid strong {
+  color: #f8fafc;
+}
+
+.cashier-status-buttons,
+.cashier-medicine-approval-buttons {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  margin-top: 16px;
+}
+
+.cashier-status-buttons button,
+.cashier-medicine-approval-buttons button {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.58);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 52px;
+  padding: 12px;
+}
+
+.cashier-status-buttons button.active,
+.cashier-medicine-approval-buttons button.active {
+  border-color: rgba(34, 197, 94, 0.58);
+  background: rgba(22, 163, 74, 0.16);
+  color: #f0fdf4;
+}
+
+.cashier-medicine-approval-buttons button.danger.active {
+  border-color: rgba(239, 68, 68, 0.58);
+  background: rgba(239, 68, 68, 0.16);
+  color: #fecaca;
+}
+
+.cashier-medicine-approval-panel {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr);
+  gap: 16px;
+  margin-top: 18px;
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  border-radius: 18px;
+  background: rgba(14, 165, 233, 0.08);
+  padding: 16px;
+}
+
+.cashier-medicine-approval-panel small {
+  display: block;
+  color: #7dd3fc;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.cashier-medicine-approval-panel h3 {
+  color: #f8fafc;
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+
+.cashier-medicine-approval-panel p {
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.cashier-medicine-guarantor-note {
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  border-radius: 16px;
+  background: rgba(22, 163, 74, 0.1);
+  color: #bbf7d0;
+  font-weight: 800;
+  padding: 16px;
+}
+
+.cashier-note-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.cashier-note-field textarea {
+  width: 100%;
+  min-height: 96px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.66);
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 15px;
+  padding: 13px 15px;
+  resize: vertical;
+  outline: none;
+}
+
+.cashier-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.cashier-action-bar button,
+.cashier-action-bar a {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #eff6ff;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 12px 18px;
+  text-decoration: none;
+}
+
+.cashier-action-bar .cashier-pharmacy-link {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #f0fdf4;
+}
+
+@media (max-width: 1000px) {
+  .rme-cashier-action-card,
+  .cashier-medicine-approval-panel {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cashier-info-grid,
+  .cashier-summary-grid,
+  .cashier-status-buttons,
+  .cashier-medicine-approval-buttons {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* RME send to cashier */
+.rme-send-cashier-panel {
+  margin-top: 18px;
+  border-color: rgba(34, 197, 94, 0.32);
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 32%),
+    rgba(15, 23, 42, 0.72);
+}
+
+.rme-send-cashier-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid rgba(34, 197, 94, 0.32);
+  border-radius: 18px;
+  background: rgba(22, 163, 74, 0.1);
+  margin-top: 16px;
+  padding: 18px;
+}
+
+.rme-send-cashier-card strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+
+.rme-send-cashier-card p {
+  color: #bbf7d0;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.rme-send-cashier-card button {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #f0fdf4;
+  cursor: pointer;
+  font-weight: 900;
+  min-width: 260px;
+  padding: 13px 18px;
+}
+
+.rme-send-cashier-card button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgba(34, 197, 94, 0.18);
+}
+
+@media (max-width: 900px) {
+  .rme-send-cashier-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rme-send-cashier-card button {
+    width: 100%;
+  }
+}
+
+/* Disable pharmacy flow when general patient rejects medicine payment */
+.cashier-action-bar .cashier-pharmacy-link.disabled,
+.cashier-action-bar button.cashier-pharmacy-link.disabled {
+  background: rgba(71, 85, 105, 0.55) !important;
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed !important;
+  opacity: 0.65;
+  box-shadow: none !important;
+}
+
+.cashier-pharmacy-blocked-note {
+  margin-top: 14px;
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  border-radius: 16px;
+  background: rgba(251, 191, 36, 0.1);
+  color: #fde68a;
+  font-weight: 700;
+  line-height: 1.6;
+  padding: 14px 16px;
+}
+
+/* Cashier print actions */
+.cashier-action-bar .cashier-print-button {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: #fff7ed;
+}
+
+.cashier-action-bar .cashier-print-button.prescription {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: #f5f3ff;
+}
+
+.cashier-action-bar .cashier-print-button:disabled,
+.cashier-action-bar .cashier-print-button.prescription:disabled {
+  background: rgba(71, 85, 105, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.65;
+  box-shadow: none;
+}
+
+/* Pharmacy queue from cashier */
+.pharmacy-queue-panel,
+.pharmacy-patient-panel,
+.pharmacy-order-panel,
+.pharmacy-process-panel {
+  margin-top: 18px;
+}
+
+.pharmacy-queue-table-wrap {
+  overflow-x: auto;
+  margin-top: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+}
+
+.pharmacy-queue-table {
+  width: 100%;
+  min-width: 1080px;
+  border-collapse: collapse;
+}
+
+.pharmacy-queue-table th,
+.pharmacy-queue-table td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  padding: 14px;
+  text-align: left;
+}
+
+.pharmacy-queue-table th {
+  color: #7dd3fc;
+  background: rgba(2, 6, 23, 0.44);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pharmacy-queue-table td {
+  color: #e2e8f0;
+}
+
+.pharmacy-queue-table tr.active td {
+  background: rgba(14, 165, 233, 0.08);
+}
+
+.pharmacy-queue-table button {
+  border: 1px solid rgba(56, 189, 248, 0.42);
+  border-radius: 999px;
+  background: rgba(14, 165, 233, 0.14);
+  color: #bae6fd;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+.pharmacy-status-pill {
+  display: inline-flex;
+  border: 1px solid rgba(34, 197, 94, 0.26);
+  border-radius: 999px;
+  background: rgba(22, 163, 74, 0.12);
+  color: #bbf7d0;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 10px;
+}
+
+.pharmacy-info-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  margin-top: 16px;
+}
+
+.pharmacy-info-grid div {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.62);
+  padding: 14px;
+}
+
+.pharmacy-info-grid span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.pharmacy-info-grid strong {
+  color: #f8fafc;
+}
+
+.pharmacy-medicine-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.pharmacy-medicine-list article {
+  border: 1px solid rgba(34, 197, 94, 0.24);
+  border-radius: 18px;
+  background: rgba(22, 163, 74, 0.1);
+  padding: 16px;
+}
+
+.pharmacy-medicine-list small {
+  display: block;
+  color: #7dd3fc;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.pharmacy-medicine-list strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+
+.pharmacy-medicine-list span {
+  color: #bbf7d0;
+  font-weight: 700;
+}
+
+.pharmacy-warning-card {
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  border-radius: 16px;
+  background: rgba(251, 191, 36, 0.1);
+  color: #fde68a;
+  line-height: 1.6;
+  margin-top: 16px;
+  padding: 14px;
+}
+
+.pharmacy-status-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.pharmacy-status-buttons button {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.58);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 52px;
+  padding: 12px;
+}
+
+.pharmacy-status-buttons button.active {
+  border-color: rgba(34, 197, 94, 0.58);
+  background: rgba(22, 163, 74, 0.16);
+  color: #f0fdf4;
+}
+
+.pharmacy-status-buttons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pharmacy-note-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.pharmacy-note-field textarea {
+  width: 100%;
+  min-height: 96px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.66);
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: 15px;
+  padding: 13px 15px;
+  resize: vertical;
+  outline: none;
+}
+
+.pharmacy-action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.pharmacy-action-bar button,
+.pharmacy-action-bar a {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #eff6ff;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 12px 18px;
+  text-decoration: none;
+}
+
+.pharmacy-action-bar button:nth-child(2) {
+  background: rgba(15, 23, 42, 0.74);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.pharmacy-action-bar a {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #f0fdf4;
+}
+
+.pharmacy-action-bar button:disabled {
+  background: rgba(71, 85, 105, 0.55);
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+@media (max-width: 1100px) {
+  .pharmacy-info-grid,
+  .pharmacy-status-buttons {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .pharmacy-info-grid,
+  .pharmacy-status-buttons {
+    grid-template-columns: 1fr;
+  }
+}

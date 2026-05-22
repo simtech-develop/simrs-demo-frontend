@@ -9,6 +9,62 @@ type InpatientAdmissionStatus =
   | 'Masuk Rawat Inap'
   | 'Batal Rawat Inap'
 
+type InpatientDailyCareForm = {
+  nursingAssessment: string
+  fallRisk: string
+  painScale: string
+  cpptNote: string
+  doctorInstruction: string
+  pharmacyOrder: string
+  infusionOrder: string
+  medicalSupplyOrder: string
+  dailyRoomCost: number
+  doctorVisitCost: number
+  nursingActionCost: number
+  pharmacyCost: number
+  dischargePlan: string
+  dischargeStatus: 'Belum Direncanakan' | 'Rencana Pulang' | 'Siap Pulang' | 'Batal Pulang'
+}
+
+const inpatientDailyCareStorageKey = 'simrs_inpatient_daily_care_demo'
+
+const initialDailyCareForm: InpatientDailyCareForm = {
+  nursingAssessment:
+    'Pasien masuk ruang rawat inap, kondisi umum stabil, masih perlu observasi pasca tindakan.',
+  fallRisk: 'Sedang',
+  painScale: '4',
+  cpptNote:
+    'Pasien pasca penanganan IGD merah. Monitoring tanda vital, keluhan sesak, dan respon terapi.',
+  doctorInstruction:
+    'Observasi tanda vital tiap 4 jam, lanjutkan terapi sesuai instruksi, evaluasi ulang besok pagi.',
+  pharmacyOrder: 'Paracetamol injeksi, antibiotik sesuai indikasi, obat simptomatik',
+  infusionOrder: 'RL 20 tpm',
+  medicalSupplyOrder: 'Infus set, spuit, kasa steril, plester',
+  dailyRoomCost: 350000,
+  doctorVisitCost: 250000,
+  nursingActionCost: 150000,
+  pharmacyCost: 300000,
+  dischargePlan:
+    'Rencana pulang ditentukan setelah kondisi stabil dan DPJP menyatakan pasien layak pulang.',
+  dischargeStatus: 'Belum Direncanakan',
+}
+
+const fallRiskOptions = ['Rendah', 'Sedang', 'Tinggi']
+const dischargeStatusOptions: InpatientDailyCareForm['dischargeStatus'][] = [
+  'Belum Direncanakan',
+  'Rencana Pulang',
+  'Siap Pulang',
+  'Batal Pulang',
+]
+
+const normalizeMoneyInput = (value: string) => {
+  const digitsOnly = value.replace(/\D/g, '')
+  const normalizedValue = digitsOnly.replace(/^0+(?=\d)/, '')
+
+  return Number(normalizedValue || '0')
+}
+
+
 type InpatientAdmissionForm = {
   patientName: string
   medicalRecordNo: string
@@ -76,6 +132,56 @@ function InpatientPage() {
   const [admission, setAdmission] =
     useState<InpatientAdmissionForm>(initialAdmissionForm)
   const [isSaved, setIsSaved] = useState(false)
+
+  const [dailyCare, setDailyCare] =
+    useState<InpatientDailyCareForm>(initialDailyCareForm)
+  const [isDailyCareSaved, setIsDailyCareSaved] = useState(false)
+
+  const totalDailyCareCost = useMemo(
+    () =>
+      dailyCare.dailyRoomCost +
+      dailyCare.doctorVisitCost +
+      dailyCare.nursingActionCost +
+      dailyCare.pharmacyCost,
+    [dailyCare],
+  )
+
+  const updateDailyCare = <K extends keyof InpatientDailyCareForm>(
+    field: K,
+    value: InpatientDailyCareForm[K],
+  ) => {
+    setDailyCare((currentDailyCare) => ({
+      ...currentDailyCare,
+      [field]: value,
+    }))
+
+    if (isDailyCareSaved) {
+      setIsDailyCareSaved(false)
+    }
+  }
+
+  const saveDailyCare = () => {
+    const payload = {
+      ...dailyCare,
+      patientName: admission.patientName,
+      medicalRecordNo: admission.medicalRecordNo,
+      guarantor: admission.guarantor,
+      ward: admission.ward,
+      bed: admission.bed,
+      dpjp: admission.dpjp,
+      totalDailyCareCost,
+      savedAt: new Date().toISOString(),
+      source: 'Rawat Inap',
+    }
+
+    window.localStorage.setItem(
+      inpatientDailyCareStorageKey,
+      JSON.stringify(payload),
+    )
+
+    setIsDailyCareSaved(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const estimatedDeposit = useMemo(() => {
     if (admission.guarantor === 'BPJS') {
@@ -184,6 +290,16 @@ function InpatientPage() {
             <span>
               Data pasien, kelas perawatan, ruang, DPJP, dan status penjamin
               sudah dicatat untuk demo rawat inap.
+            </span>
+          </section>
+        )}
+
+        {isDailyCareSaved && (
+          <section className="registration-success-banner">
+            <strong>Pelayanan rawat inap harian tersimpan.</strong>
+            <span>
+              Asesmen keperawatan, instruksi DPJP, order farmasi, biaya harian,
+              dan rencana pulang sudah dicatat untuk demo rawat inap.
             </span>
           </section>
         )}
@@ -438,6 +554,272 @@ function InpatientPage() {
             <Link to="/kasir">Lanjut Kasir</Link>
           </div>
         </section>
+
+        <section className="outpatient-panel inpatient-daily-care-panel">
+          <div className="outpatient-panel-title">
+            <small>Pelayanan Rawat Inap</small>
+            <h2>Pelayanan Harian Pasien</h2>
+            <p>
+              Digunakan untuk mencatat asesmen keperawatan, CPPT, instruksi
+              DPJP, order farmasi, biaya harian, dan rencana pulang pasien.
+            </p>
+          </div>
+
+          <div className="inpatient-subsection-title">
+            <span>01</span>
+            <div>
+              <strong>Asesmen Keperawatan</strong>
+              <p>Kondisi awal pasien saat masuk ruang rawat inap.</p>
+            </div>
+          </div>
+
+          <div className="inpatient-form-grid">
+            <label>
+              <span>Asesmen Keperawatan</span>
+              <textarea
+                value={dailyCare.nursingAssessment}
+                onChange={(event) =>
+                  updateDailyCare('nursingAssessment', event.target.value)
+                }
+                rows={3}
+              />
+            </label>
+
+            <label>
+              <span>Risiko Jatuh</span>
+              <select
+                value={dailyCare.fallRisk}
+                onChange={(event) =>
+                  updateDailyCare('fallRisk', event.target.value)
+                }
+              >
+                {fallRiskOptions.map((risk) => (
+                  <option value={risk} key={risk}>
+                    {risk}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Skala Nyeri</span>
+              <input
+                inputMode="numeric"
+                value={dailyCare.painScale}
+                onChange={(event) =>
+                  updateDailyCare('painScale', event.target.value)
+                }
+                placeholder="0 - 10"
+              />
+            </label>
+          </div>
+
+          <div className="inpatient-subsection-title">
+            <span>02</span>
+            <div>
+              <strong>Instruksi DPJP / CPPT</strong>
+              <p>Catatan perkembangan pasien dan instruksi dokter.</p>
+            </div>
+          </div>
+
+          <div className="inpatient-form-grid">
+            <label>
+              <span>Catatan CPPT</span>
+              <textarea
+                value={dailyCare.cpptNote}
+                onChange={(event) =>
+                  updateDailyCare('cpptNote', event.target.value)
+                }
+                rows={3}
+              />
+            </label>
+
+            <label>
+              <span>Instruksi DPJP</span>
+              <textarea
+                value={dailyCare.doctorInstruction}
+                onChange={(event) =>
+                  updateDailyCare('doctorInstruction', event.target.value)
+                }
+                rows={3}
+              />
+            </label>
+          </div>
+
+          <div className="inpatient-subsection-title">
+            <span>03</span>
+            <div>
+              <strong>Order Farmasi dan BMHP</strong>
+              <p>Obat, cairan infus, dan alat kesehatan selama perawatan.</p>
+            </div>
+          </div>
+
+          <div className="inpatient-form-grid">
+            <label>
+              <span>Order Obat</span>
+              <textarea
+                value={dailyCare.pharmacyOrder}
+                onChange={(event) =>
+                  updateDailyCare('pharmacyOrder', event.target.value)
+                }
+                rows={3}
+              />
+            </label>
+
+            <label>
+              <span>Order Cairan Infus</span>
+              <input
+                value={dailyCare.infusionOrder}
+                onChange={(event) =>
+                  updateDailyCare('infusionOrder', event.target.value)
+                }
+              />
+            </label>
+
+            <label>
+              <span>Order BMHP / Alat Kesehatan</span>
+              <textarea
+                value={dailyCare.medicalSupplyOrder}
+                onChange={(event) =>
+                  updateDailyCare('medicalSupplyOrder', event.target.value)
+                }
+                rows={3}
+              />
+            </label>
+          </div>
+
+          <div className="inpatient-subsection-title">
+            <span>04</span>
+            <div>
+              <strong>Biaya Harian Rawat Inap</strong>
+              <p>Estimasi komponen tagihan harian untuk kasir.</p>
+            </div>
+          </div>
+
+          <div className="inpatient-cost-grid">
+            <label>
+              <span>Biaya Kamar / Hari</span>
+              <input
+                inputMode="numeric"
+                value={String(dailyCare.dailyRoomCost)}
+                onChange={(event) =>
+                  updateDailyCare(
+                    'dailyRoomCost',
+                    normalizeMoneyInput(event.target.value),
+                  )
+                }
+              />
+            </label>
+
+            <label>
+              <span>Visite Dokter</span>
+              <input
+                inputMode="numeric"
+                value={String(dailyCare.doctorVisitCost)}
+                onChange={(event) =>
+                  updateDailyCare(
+                    'doctorVisitCost',
+                    normalizeMoneyInput(event.target.value),
+                  )
+                }
+              />
+            </label>
+
+            <label>
+              <span>Tindakan Perawat</span>
+              <input
+                inputMode="numeric"
+                value={String(dailyCare.nursingActionCost)}
+                onChange={(event) =>
+                  updateDailyCare(
+                    'nursingActionCost',
+                    normalizeMoneyInput(event.target.value),
+                  )
+                }
+              />
+            </label>
+
+            <label>
+              <span>Obat / Farmasi</span>
+              <input
+                inputMode="numeric"
+                value={String(dailyCare.pharmacyCost)}
+                onChange={(event) =>
+                  updateDailyCare(
+                    'pharmacyCost',
+                    normalizeMoneyInput(event.target.value),
+                  )
+                }
+              />
+            </label>
+          </div>
+
+          <div className="inpatient-daily-summary">
+            <div>
+              <span>Total Estimasi Harian</span>
+              <strong>{formatCurrency(totalDailyCareCost)}</strong>
+              <p>
+                Komponen ini dapat diteruskan sebagai draft tagihan rawat inap
+                ke kasir.
+              </p>
+            </div>
+
+            <button type="button" onClick={saveDailyCare}>
+              Simpan Pelayanan Harian
+            </button>
+          </div>
+        </section>
+
+        <section className="outpatient-panel inpatient-discharge-panel">
+          <div className="outpatient-panel-title">
+            <small>Rencana Pulang</small>
+            <h2>Discharge Planning</h2>
+            <p>
+              Digunakan ketika pasien mulai direncanakan pulang, lanjut farmasi,
+              dan penyelesaian administrasi kasir.
+            </p>
+          </div>
+
+          <div className="inpatient-form-grid">
+            <label>
+              <span>Status Pulang</span>
+              <select
+                value={dailyCare.dischargeStatus}
+                onChange={(event) =>
+                  updateDailyCare(
+                    'dischargeStatus',
+                    event.target.value as InpatientDailyCareForm['dischargeStatus'],
+                  )
+                }
+              >
+                {dischargeStatusOptions.map((status) => (
+                  <option value={status} key={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Rencana Pulang / Instruksi</span>
+              <textarea
+                value={dailyCare.dischargePlan}
+                onChange={(event) =>
+                  updateDailyCare('dischargePlan', event.target.value)
+                }
+                rows={3}
+              />
+            </label>
+          </div>
+
+          <div className="inpatient-action-bar inpatient-discharge-actions">
+            <Link className="primary-cashier-link" to="/kasir">
+              Lanjut Kasir / Pembayaran
+            </Link>
+            <Link to="/rme">Lihat RME</Link>
+          </div>
+        </section>
+
       </section>
     </main>
   )

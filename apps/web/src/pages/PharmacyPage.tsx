@@ -1,152 +1,171 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { api } from '../lib/api'
 
-type PharmacyOrderStatus =
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'READY'
-  | 'COMPLETED'
-  | 'CANCELED'
+type PharmacyStatus =
+  | 'Order Masuk'
+  | 'Diverifikasi Farmasi'
+  | 'Obat Disiapkan'
+  | 'Obat Siap Diambil'
+  | 'Obat Diserahkan'
+  | 'Tidak Diambil'
 
-type ApiPharmacyOrder = {
+type BillingItem = {
+  source: string
+  category: string
+  itemName: string
+  quantity: number
+  unitPrice: number
+}
+
+type CashierPayment = {
+  patientName?: string
+  medicalRecordNo?: string
+  guarantor?: 'Umum' | 'BPJS' | 'Asuransi Lain'
+  insuranceNumber?: string
+  paymentStatus?: string
+  medicinePaymentApproval?: string
+  isMedicinePaymentApproved?: boolean
+  items?: BillingItem[]
+  savedAt?: string
+}
+
+type PharmacyQueuePatient = {
   id: string
-  status: PharmacyOrderStatus
-  note?: string | null
-  createdAt: string
-  updatedAt: string
-  registrationId: string
-  items: Array<{
-    id: string
-    medicineName: string
-    dosage: string
-    frequency: string
-    quantity: string
-    instruction?: string | null
-  }>
-  registration: {
-    id: string
-    registrationNo: string
-    patient: {
-      id: string
-      medicalRecordNo: string
-      fullName: string
+  medicalRecordNo: string
+  patientName: string
+  sourceUnit: string
+  guarantor: string
+  cashierStatus: string
+  medicineApproval: string
+  pharmacyStatus: PharmacyStatus
+  medicineItems: BillingItem[]
+}
+
+const cashierPaymentStorageKey = 'simrs_cashier_payment_demo'
+const pharmacyQueueStorageKey = 'simrs_pharmacy_queue_demo'
+const pharmacyDispenseStorageKey = 'simrs_pharmacy_dispense_demo'
+
+const readStorage = <T,>(key: string): T | null => {
+  try {
+    const rawValue = window.localStorage.getItem(key)
+
+    if (!rawValue) {
+      return null
     }
-    clinic: {
-      id: string
-      code: string
-      name: string
-    }
+
+    return JSON.parse(rawValue) as T
+  } catch (error) {
+    console.error(`Gagal membaca ${key}:`, error)
+    return null
   }
 }
 
-type PharmacyOrderRow = {
-  id: string
-  registrationId: string
-  rm: string
-  patient: string
-  clinic: string
-  itemCount: number
-  status: string
-  statusClass: string
-}
+const isMedicineItem = (item: BillingItem) =>
+  item.category.toLowerCase().includes('obat') ||
+  item.source.toLowerCase().includes('farmasi')
 
-function mapStatus(status: PharmacyOrderStatus) {
-  switch (status) {
-    case 'PENDING':
-      return {
-        label: 'Menunggu Diproses',
-        className: '',
-      }
-    case 'PROCESSING':
-      return {
-        label: 'Sedang Disiapkan',
-        className: 'preparing',
-      }
-    case 'READY':
-      return {
-        label: 'Obat Siap Diambil',
-        className: 'ready',
-      }
-    case 'COMPLETED':
-      return {
-        label: 'Selesai',
-        className: 'ready',
-      }
-    case 'CANCELED':
-      return {
-        label: 'Dibatalkan',
-        className: '',
-      }
-    default:
-      return {
-        label: 'Menunggu Diproses',
-        className: '',
-      }
-  }
-}
-
-function mapOrder(order: ApiPharmacyOrder): PharmacyOrderRow {
-  const status = mapStatus(order.status)
-
-  return {
-    id: order.id,
-    registrationId: order.registrationId,
-    rm: order.registration.patient.medicalRecordNo,
-    patient: order.registration.patient.fullName,
-    clinic: order.registration.clinic.name,
-    itemCount: order.items.length,
-    status: status.label,
-    statusClass: status.className,
-  }
-}
 
 function PharmacyPage() {
-  const [orders, setOrders] = useState<PharmacyOrderRow[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
+  const [cashierPayment, setCashierPayment] = useState<CashierPayment | null>(
+    null,
+  )
+  const [selectedQueuePatientId, setSelectedQueuePatientId] =
+    useState<string>('cashier-patient')
+  const [pharmacyStatus, setPharmacyStatus] =
+    useState<PharmacyStatus>('Order Masuk')
+  const [pharmacyNote, setPharmacyNote] = useState(
+    'Order obat dibaca dari data kasir setelah pembayaran atau verifikasi penjamin selesai.',
+  )
+  const [isSaved, setIsSaved] = useState(false)
 
-  const loadPharmacyOrders = async () => {
-    setIsLoading(true)
-    setLoadError('')
-
-    try {
-      const response = await api.get<ApiPharmacyOrder[]>('/pharmacy-orders')
-      setOrders(response.map(mapOrder))
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Gagal memuat order farmasi dari backend.'
-
-      setOrders([])
-      setLoadError(message)
-    } finally {
-      setIsLoading(false)
-    }
+  const reloadPharmacyQueue = () => {
+    setCashierPayment(readStorage<CashierPayment>(cashierPaymentStorageKey))
+    setIsSaved(false)
   }
 
   useEffect(() => {
-    void loadPharmacyOrders()
+    reloadPharmacyQueue()
   }, [])
 
-  const totalOrders = orders.length
+  const pharmacyQueuePatients = useMemo<PharmacyQueuePatient[]>(() => {
+    const queueFromCashier =
+      readStorage<PharmacyQueuePatient[]>(pharmacyQueueStorageKey) || []
 
-  const totalMedicines = useMemo(
-    () => orders.reduce((total, order) => total + order.itemCount, 0),
-    [orders],
-  )
+    if (queueFromCashier.length > 0) {
+      return queueFromCashier.filter((patient) => patient.medicineItems.length > 0)
+    }
 
-  const totalProcessed = orders.filter(
-    (order) => order.status !== 'Menunggu Diproses',
-  ).length
+    if (!cashierPayment) {
+      return []
+    }
 
-  const totalReady = orders.filter(
-    (order) => order.status === 'Obat Siap Diambil',
-  ).length
+    const medicineItems = (cashierPayment.items || []).filter(isMedicineItem)
+
+    if (medicineItems.length === 0) {
+      return []
+    }
+
+    const medicineApproved =
+      cashierPayment.isMedicinePaymentApproved ||
+      cashierPayment.medicinePaymentApproval === 'Setuju Bayar Obat' ||
+      cashierPayment.guarantor === 'BPJS' ||
+      cashierPayment.guarantor === 'Asuransi Lain'
+
+    return [
+      {
+        id: `${cashierPayment.medicalRecordNo || 'RM'}-${cashierPayment.savedAt || Date.now()}`,
+        medicalRecordNo: cashierPayment.medicalRecordNo || '-',
+        patientName: cashierPayment.patientName || '-',
+        sourceUnit: 'Kasir',
+        guarantor: cashierPayment.guarantor || 'Umum',
+        cashierStatus: cashierPayment.paymentStatus || '-',
+        medicineApproval: medicineApproved ? 'Disetujui' : 'Tidak Disetujui',
+        pharmacyStatus: medicineApproved ? 'Order Masuk' : 'Tidak Diambil',
+        medicineItems,
+      },
+    ]
+  }, [cashierPayment])
+
+  const selectedQueuePatient =
+    pharmacyQueuePatients.find(
+      (patient) => patient.id === selectedQueuePatientId,
+    ) || pharmacyQueuePatients[0]
+
+  const selectedMedicineItems = selectedQueuePatient?.medicineItems || []
+
+  const canProcessPharmacy =
+    selectedQueuePatient &&
+    selectedQueuePatient.pharmacyStatus !== 'Tidak Diambil' &&
+    selectedMedicineItems.length > 0
+
+  const saveDispense = () => {
+    if (!selectedQueuePatient) {
+      return
+    }
+
+    const payload = {
+      patientName: selectedQueuePatient.patientName,
+      medicalRecordNo: selectedQueuePatient.medicalRecordNo,
+      guarantor: selectedQueuePatient.guarantor,
+      cashierStatus: selectedQueuePatient.cashierStatus,
+      medicineApproval: selectedQueuePatient.medicineApproval,
+      pharmacyStatus,
+      pharmacyNote,
+      medicineItems: selectedMedicineItems,
+      savedAt: new Date().toISOString(),
+    }
+
+    window.localStorage.setItem(
+      pharmacyDispenseStorageKey,
+      JSON.stringify(payload),
+    )
+
+    setIsSaved(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
-    <main className="pharmacy-app">
+    <main className="outpatient-app">
       <aside className="dashboard-sidebar-pro">
         <div className="sidebar-brand-pro">
           <span>SIMRS</span>
@@ -172,154 +191,260 @@ function PharmacyPage() {
         <div className="sidebar-demo-card">
           <small>Demo Instance</small>
           <strong>RS SIMTECH Medika</strong>
-          <span>Antrean resep dari backend farmasi</span>
+          <span>Antrean farmasi dari kasir</span>
           <Link to="/">Keluar dari Demo</Link>
         </div>
       </aside>
 
-      <section className="pharmacy-content">
-        <header className="pharmacy-header">
+      <section className="outpatient-content">
+        <header className="outpatient-header">
           <div>
             <small>Modul Penunjang Klinis</small>
             <h1>Farmasi</h1>
             <p>
-              Monitoring resep elektronik yang telah terbentuk sebagai order
-              farmasi dan siap diproses oleh unit farmasi rumah sakit.
+              Farmasi menerima pasien dari Kasir setelah pembayaran,
+              verifikasi penjamin, dan persetujuan pengambilan obat selesai.
             </p>
           </div>
 
-          <div className="pharmacy-status-card">
-            <span>Status Modul</span>
-            <strong>Aktif</strong>
-            <p>Backend Integrated</p>
+          <div className="outpatient-unit-card">
+            <span>Status Farmasi</span>
+            <strong>{pharmacyStatus}</strong>
+            <p>
+              {selectedQueuePatient
+                ? selectedQueuePatient.cashierStatus
+                : 'Belum ada pasien'}
+            </p>
           </div>
         </header>
 
-        {loadError && (
-          <section className="registration-warning-banner">
-            <strong>Order farmasi belum dapat dimuat.</strong>
-            <span>{loadError}</span>
+        {isSaved && (
+          <section className="registration-success-banner">
+            <strong>Status farmasi tersimpan.</strong>
+            <span>
+              Data pengambilan obat pasien sudah dicatat dari antrean farmasi.
+            </span>
           </section>
         )}
 
-        <section className="pharmacy-stat-grid">
-          <article className="pharmacy-stat-card">
-            <span>Resep Masuk</span>
-            <strong>{totalOrders}</strong>
-            <small>Order aktif</small>
+        <section className="outpatient-stat-grid">
+          <article className="outpatient-stat-card">
+            <span>Pasien Farmasi</span>
+            <strong>{pharmacyQueuePatients.length}</strong>
+            <small>Dari kasir</small>
           </article>
 
-          <article className="pharmacy-stat-card">
+          <article className="outpatient-stat-card">
             <span>Total Item Obat</span>
-            <strong>{totalMedicines}</strong>
-            <small>Dari resep dokter</small>
+            <strong>{selectedMedicineItems.length}</strong>
+            <small>Pasien terpilih</small>
           </article>
 
-          <article className="pharmacy-stat-card">
-            <span>Resep Diproses</span>
-            <strong>{totalProcessed}</strong>
-            <small>Sudah disentuh farmasi</small>
+          <article className="outpatient-stat-card">
+            <span>Status Kasir</span>
+            <strong>
+              {selectedQueuePatient?.cashierStatus || 'Belum ada data'}
+            </strong>
+            <small>Pembayaran / penjamin</small>
           </article>
 
-          <article className="pharmacy-stat-card">
-            <span>Obat Siap Diambil</span>
-            <strong>{totalReady}</strong>
-            <small>Siap serah pasien</small>
+          <article className="outpatient-stat-card">
+            <span>Penjamin</span>
+            <strong>{selectedQueuePatient?.guarantor || '-'}</strong>
+            <small>{selectedQueuePatient?.medicineApproval || '-'}</small>
           </article>
         </section>
 
-        <section className="pharmacy-layout">
-          <article className="pharmacy-panel">
-            <div className="pharmacy-panel-title">
-              <small>Prescription Queue</small>
-              <h2>Daftar Resep Masuk</h2>
-            </div>
+        <section className="outpatient-panel pharmacy-queue-panel">
+          <div className="outpatient-panel-title">
+            <small>Prescription Queue</small>
+            <h2>Daftar Pasien Masuk Farmasi</h2>
+            <p>
+              Pasien muncul di sini setelah transaksi kasir selesai dan pasien
+              menyetujui pengambilan obat di Farmasi RS.
+            </p>
+          </div>
 
-            <div className="pharmacy-table-wrapper">
-              <table className="pharmacy-table">
+          {pharmacyQueuePatients.length > 0 ? (
+            <div className="pharmacy-queue-table-wrap">
+              <table className="pharmacy-queue-table">
                 <thead>
                   <tr>
                     <th>No. RM</th>
                     <th>Nama Pasien</th>
-                    <th>Poli</th>
-                    <th>Item Obat</th>
-                    <th>Status</th>
+                    <th>Sumber</th>
+                    <th>Penjamin</th>
+                    <th>Status Kasir</th>
+                    <th>Persetujuan Obat</th>
+                    <th>Item</th>
+                    <th>Status Farmasi</th>
                     <th>Aksi</th>
                   </tr>
                 </thead>
-
                 <tbody>
-                  {isLoading && (
-                    <tr>
-                      <td colSpan={6} className="empty-table-state">
-                        Memuat order farmasi dari backend...
+                  {pharmacyQueuePatients.map((patient) => (
+                    <tr
+                      className={
+                        selectedQueuePatient?.id === patient.id ? 'active' : ''
+                      }
+                      key={patient.id}
+                    >
+                      <td>{patient.medicalRecordNo}</td>
+                      <td>{patient.patientName}</td>
+                      <td>{patient.sourceUnit}</td>
+                      <td>{patient.guarantor}</td>
+                      <td>{patient.cashierStatus}</td>
+                      <td>{patient.medicineApproval}</td>
+                      <td>{patient.medicineItems.length} item</td>
+                      <td>
+                        <span className="pharmacy-status-pill">
+                          {patient.pharmacyStatus}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedQueuePatientId(patient.id)
+                            setPharmacyStatus(patient.pharmacyStatus)
+                            setIsSaved(false)
+                          }}
+                        >
+                          Pilih Pasien
+                        </button>
                       </td>
                     </tr>
-                  )}
-
-                  {!isLoading && orders.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="empty-table-state">
-                        Belum ada resep yang masuk dari pemeriksaan dokter.
-                      </td>
-                    </tr>
-                  )}
-
-                  {!isLoading &&
-                    orders.map((order) => (
-                      <tr key={order.id}>
-                        <td>{order.rm}</td>
-                        <td>{order.patient}</td>
-                        <td>{order.clinic}</td>
-                        <td>{order.itemCount} Obat</td>
-                        <td>
-                          <span
-                            className={`pharmacy-status-pill ${order.statusClass}`}
-                          >
-                            {order.status}
-                          </span>
-                        </td>
-                        <td>
-                          <Link
-                            className="detail-registration-link"
-                            to={`/farmasi/detail/${order.registrationId}`}
-                          >
-                            Lihat Resep
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
+                  ))}
                 </tbody>
               </table>
             </div>
-          </article>
-
-          <article className="pharmacy-panel pharmacy-flow-panel">
-            <div className="pharmacy-panel-title">
-              <small>Alur Farmasi</small>
-              <h2>Resep dari Dokter</h2>
+          ) : (
+            <div className="cashier-empty-state">
+              Belum ada pasien dari Kasir. Selesaikan pembayaran/verifikasi
+              penjamin di modul Kasir, lalu klik Muat Ulang Order.
             </div>
+          )}
+        </section>
 
-            <div className="pharmacy-process-flow">
-              <div>
-                <span>01</span>
-                <strong>Pemeriksaan Selesai</strong>
-                <p>Dokter menyimpan hasil pemeriksaan pasien.</p>
-              </div>
+        <section className="outpatient-panel pharmacy-patient-panel">
+          <div className="outpatient-panel-title">
+            <small>Data Resep</small>
+            <h2>Pasien dan Status Pembayaran</h2>
+          </div>
 
-              <div>
-                <span>02</span>
-                <strong>Order Farmasi Terbentuk</strong>
-                <p>Resep diteruskan sebagai order farmasi backend.</p>
-              </div>
-
-              <div>
-                <span>03</span>
-                <strong>Proses Dispensing</strong>
-                <p>Farmasi memverifikasi dan menyiapkan obat pasien.</p>
-              </div>
+          <div className="pharmacy-info-grid">
+            <div>
+              <span>No. Rekam Medis</span>
+              <strong>{selectedQueuePatient?.medicalRecordNo || '-'}</strong>
             </div>
-          </article>
+            <div>
+              <span>Nama Pasien</span>
+              <strong>{selectedQueuePatient?.patientName || '-'}</strong>
+            </div>
+            <div>
+              <span>Sumber Order</span>
+              <strong>{selectedQueuePatient?.sourceUnit || '-'}</strong>
+            </div>
+            <div>
+              <span>Status Kasir</span>
+              <strong>{selectedQueuePatient?.cashierStatus || '-'}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="outpatient-panel pharmacy-order-panel">
+          <div className="outpatient-panel-title">
+            <small>Order Farmasi</small>
+            <h2>Detail Obat Pasien</h2>
+            <p>
+              Detail obat dibaca dari item obat pada transaksi kasir pasien
+              terpilih.
+            </p>
+          </div>
+
+          {selectedMedicineItems.length > 0 ? (
+            <div className="pharmacy-medicine-list">
+              {selectedMedicineItems.map((item, index) => (
+                <article key={`${item.itemName}-${index}`}>
+                  <small>Obat {index + 1}</small>
+                  <strong>{item.itemName}</strong>
+                  <span>Qty: {item.quantity}</span>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="cashier-empty-state">
+              Tidak ada item obat untuk pasien ini, atau pasien tidak mengambil
+              obat di Farmasi RS.
+            </div>
+          )}
+        </section>
+
+        <section className="outpatient-panel pharmacy-process-panel">
+          <div className="outpatient-panel-title">
+            <small>Proses Farmasi</small>
+            <h2>Verifikasi dan Pengambilan Obat</h2>
+          </div>
+
+          {!canProcessPharmacy && (
+            <div className="pharmacy-warning-card">
+              Pasien belum dapat diproses di Farmasi karena tidak ada item obat
+              atau pasien tidak mengambil obat melalui Farmasi RS.
+            </div>
+          )}
+
+          <div className="pharmacy-status-buttons">
+            {(
+              [
+                'Order Masuk',
+                'Diverifikasi Farmasi',
+                'Obat Disiapkan',
+                'Obat Siap Diambil',
+                'Obat Diserahkan',
+              ] as PharmacyStatus[]
+            ).map((status) => (
+              <button
+                className={pharmacyStatus === status ? 'active' : ''}
+                key={status}
+                onClick={() => {
+                  setPharmacyStatus(status)
+                  setIsSaved(false)
+                }}
+                type="button"
+                disabled={!canProcessPharmacy}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+
+          <label className="pharmacy-note-field">
+            <span>Catatan Farmasi</span>
+            <textarea
+              value={pharmacyNote}
+              onChange={(event) => {
+                setPharmacyNote(event.target.value)
+                setIsSaved(false)
+              }}
+              rows={3}
+            />
+          </label>
+
+          <div className="pharmacy-action-bar">
+            <button
+              type="button"
+              onClick={saveDispense}
+              disabled={!canProcessPharmacy}
+            >
+              Simpan Status Farmasi
+            </button>
+
+            <button type="button" onClick={reloadPharmacyQueue}>
+              Muat Ulang Order
+            </button>
+
+            <Link to="/rme">Lihat RME</Link>
+          </div>
         </section>
       </section>
     </main>

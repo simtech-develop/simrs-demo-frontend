@@ -2,6 +2,139 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { api } from '../lib/api'
 
+const extractTextBetween = (
+  text: string,
+  startLabel: string,
+  endLabels: string[],
+) => {
+  const startIndex = text.toLowerCase().indexOf(startLabel.toLowerCase())
+
+  if (startIndex === -1) {
+    return ''
+  }
+
+  const valueStart = startIndex + startLabel.length
+  const restText = text.slice(valueStart)
+
+  const endIndexes = endLabels
+    .map((label) => restText.toLowerCase().indexOf(label.toLowerCase()))
+    .filter((index) => index >= 0)
+
+  const endIndex = endIndexes.length > 0 ? Math.min(...endIndexes) : restText.length
+
+  return restText.slice(0, endIndex).trim()
+}
+
+const extractPrescriptionBillingItems = (pageText: string) => {
+  const prescriptionSection = extractTextBetween(pageText, 'Resep Obat', [
+    'Administrasi Lanjutan',
+    'Simpan ke Kasir',
+    'Transaksi siap diproses kasir',
+  ])
+
+  const matches = [
+    ...prescriptionSection.matchAll(/OBAT\s+\d+\s+([\s\S]*?)(?=OBAT\s+\d+|$)/gi),
+  ]
+
+  const parsedItems = matches
+    .map((match, index) => {
+      const block = match[1].trim()
+      const lines = block
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+
+      const medicineName = lines[0] || `Obat ${index + 1}`
+      const form = extractTextBetween(block, 'Bentuk', ['Dosis', 'Frekuensi', 'Jumlah', 'Aturan Pakai'])
+      const dose = extractTextBetween(block, 'Dosis', ['Frekuensi', 'Jumlah', 'Aturan Pakai'])
+      const frequency = extractTextBetween(block, 'Frekuensi', ['Jumlah', 'Aturan Pakai'])
+      const amount = extractTextBetween(block, 'Jumlah', ['Aturan Pakai'])
+      const instruction = extractTextBetween(block, 'Aturan Pakai', [])
+
+      const detailParts = [medicineName, form, dose, frequency, amount, instruction]
+        .filter(Boolean)
+        .join(' - ')
+
+      return {
+        source: 'Farmasi',
+        category: 'Obat',
+        itemName: detailParts,
+        quantity: 1,
+        unitPrice: 25000,
+      }
+    })
+    .filter((item) => item.itemName.trim().length > 0)
+
+  if (parsedItems.length > 0) {
+    return parsedItems
+  }
+
+  return [
+    {
+      source: 'Farmasi',
+      category: 'Obat',
+      itemName: 'Obat resep dokter',
+      quantity: 1,
+      unitPrice: 50000,
+    },
+  ]
+}
+
+
+const saveRmeToCashier = () => {
+  const pageText = document.body.innerText
+
+  const patientName =
+    document.querySelector('h1')?.textContent?.trim() || 'Pasien RME'
+
+  const rmMatch = pageText.match(/RM-\d{4}-\d+/)
+  const medicalRecordNo = rmMatch?.[0] || 'RM-RME-DEMO'
+
+  const isBpjs = pageText.toLowerCase().includes('bpjs')
+  const isInsurance = pageText.toLowerCase().includes('asuransi')
+
+  const guarantor = isBpjs
+    ? 'BPJS'
+    : isInsurance
+      ? 'Asuransi Lain'
+      : 'Umum'
+
+  const payload = {
+    sourceModule: 'RME Rawat Jalan',
+    patientName,
+    medicalRecordNo,
+    guarantor,
+    paymentStatus: 'Belum Dibayar',
+    serviceUnit: 'Rawat Jalan / RME',
+    insuranceNumber: isBpjs ? 'BPJS / perlu verifikasi' : '-',
+    items: [
+      {
+        source: 'RME Rawat Jalan',
+        category: 'Konsultasi',
+        itemName: 'Jasa pemeriksaan dokter',
+        quantity: 1,
+        unitPrice: 75000,
+      },
+      {
+        source: 'RME Rawat Jalan',
+        category: 'Administrasi',
+        itemName: 'Administrasi layanan rawat jalan',
+        quantity: 1,
+        unitPrice: 25000,
+      },
+      ...extractPrescriptionBillingItems(pageText),
+    ],
+    savedAt: new Date().toISOString(),
+  }
+
+  window.localStorage.setItem(
+    'simrs_rme_cashier_billing_demo',
+    JSON.stringify(payload),
+  )
+
+  window.location.href = '/kasir'
+}
+
 type RmePrescriptionDisplayItem = {
   medicineName: string
   medicineForm: string
@@ -662,6 +795,32 @@ function MedicalRecordDetailPage() {
           </section>
 
         </section>
+
+        <section className="outpatient-panel rme-send-cashier-panel">
+          <div className="outpatient-panel-title">
+            <small>Administrasi Lanjutan</small>
+            <h2>Simpan ke Kasir</h2>
+            <p>
+              Setelah pemeriksaan RME dan resep obat selesai, transaksi pasien
+              dikirim ke kasir untuk pembayaran atau verifikasi penjamin.
+            </p>
+          </div>
+
+          <div className="rme-send-cashier-card">
+            <div>
+              <strong>Transaksi siap diproses kasir</strong>
+              <p>
+                Draft tagihan akan dibentuk dari jasa pemeriksaan, administrasi,
+                dan obat resep dokter.
+              </p>
+            </div>
+
+            <button type="button" onClick={saveRmeToCashier}>
+              Simpan ke Kasir / Pembayaran
+            </button>
+          </div>
+        </section>
+
       </section>
     </main>
   )

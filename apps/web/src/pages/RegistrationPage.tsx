@@ -707,6 +707,36 @@ function RegistrationPage() {
     )
   }
 
+  useEffect(() => {
+    const overrides = registrations.map((registration) => {
+      const row = registration as unknown as Record<string, string>
+
+      return {
+        id: row.id || '',
+        rm: row.rm || '',
+        patient: row.patient || '',
+        nik: row.nik || '',
+        service: row.service || '',
+        doctor: row.doctor || '',
+        guarantor: row.guarantor || '',
+        insuranceNumber:
+          row.insuranceNumber ||
+          row.bpjsNumber ||
+          row.policyNumber ||
+          row.cardNumber ||
+          '',
+        queue: row.queue || '',
+        status: row.status || '',
+        updatedAt: new Date().toISOString(),
+      }
+    })
+
+    window.localStorage.setItem(
+      REGISTRATION_EDIT_STORAGE_KEY,
+      JSON.stringify(overrides),
+    )
+  }, [registrations])
+
   const saveRegistrationEdit = () => {
     if (!selectedRegistration) {
       return
@@ -745,6 +775,7 @@ function RegistrationPage() {
           : registration,
       ),
     )
+
 
     saveRegistrationEditOverride(normalizedRegistration)
 
