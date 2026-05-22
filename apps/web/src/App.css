@@ -7254,3 +7254,125 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Inpatient form polish: proportional input/select/textarea */
+.inpatient-admission-panel label,
+.inpatient-guarantor-panel label,
+.inpatient-room-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #cbd5e1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.inpatient-admission-panel input,
+.inpatient-admission-panel select,
+.inpatient-admission-panel textarea,
+.inpatient-guarantor-panel input,
+.inpatient-guarantor-panel select,
+.inpatient-guarantor-panel textarea,
+.inpatient-room-panel input,
+.inpatient-room-panel select,
+.inpatient-room-panel textarea {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.62);
+  color: #f8fafc;
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.4;
+  padding: 12px 14px;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.inpatient-admission-panel textarea,
+.inpatient-guarantor-panel textarea,
+.inpatient-room-panel textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.inpatient-admission-panel select,
+.inpatient-guarantor-panel select,
+.inpatient-room-panel select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #7dd3fc 50%),
+    linear-gradient(135deg, #7dd3fc 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) 50%,
+    calc(100% - 14px) 50%;
+  background-size:
+    6px 6px,
+    6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 42px;
+  cursor: pointer;
+}
+
+.inpatient-admission-panel input:focus,
+.inpatient-admission-panel select:focus,
+.inpatient-admission-panel textarea:focus,
+.inpatient-guarantor-panel input:focus,
+.inpatient-guarantor-panel select:focus,
+.inpatient-guarantor-panel textarea:focus,
+.inpatient-room-panel input:focus,
+.inpatient-room-panel select:focus,
+.inpatient-room-panel textarea:focus {
+  border-color: rgba(56, 189, 248, 0.72);
+  background: rgba(2, 6, 23, 0.82);
+  box-shadow:
+    0 0 0 3px rgba(14, 165, 233, 0.14),
+    0 14px 30px rgba(2, 6, 23, 0.18);
+}
+
+.inpatient-admission-panel input::placeholder,
+.inpatient-guarantor-panel input::placeholder,
+.inpatient-room-panel input::placeholder,
+.inpatient-admission-panel textarea::placeholder,
+.inpatient-guarantor-panel textarea::placeholder,
+.inpatient-room-panel textarea::placeholder {
+  color: #64748b;
+}
+
+.inpatient-form-grid label:has(textarea) {
+  grid-column: 1 / -1;
+}
+
+/* Make admission form cards visually balanced */
+.inpatient-admission-panel,
+.inpatient-guarantor-panel,
+.inpatient-room-panel {
+  border-radius: 22px;
+}
+
+.inpatient-guarantor-buttons button {
+  min-height: 86px;
+}
+
+.inpatient-admission-summary strong {
+  line-height: 1.4;
+}
+
+/* Smaller screen safety */
+@media (max-width: 900px) {
+  .inpatient-admission-panel input,
+  .inpatient-admission-panel select,
+  .inpatient-admission-panel textarea,
+  .inpatient-guarantor-panel input,
+  .inpatient-guarantor-panel select,
+  .inpatient-guarantor-panel textarea,
+  .inpatient-room-panel input,
+  .inpatient-room-panel select,
+  .inpatient-room-panel textarea {
+    font-size: 14px;
+  }
+}
