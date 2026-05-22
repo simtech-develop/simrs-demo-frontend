@@ -6229,3 +6229,111 @@
   font-weight: 700;
   pointer-events: none;
 }
+
+/* Emergency handling after triage */
+.emergency-handling-panel {
+  border-color: rgba(248, 113, 113, 0.26);
+}
+
+.emergency-handling-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.emergency-handling-footer span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.emergency-handling-footer strong {
+  color: #f8fafc;
+  font-size: 16px;
+}
+
+.save-emergency-handling-button {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #eff6ff;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 12px 18px;
+}
+
+.save-emergency-handling-button:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .emergency-handling-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .save-emergency-handling-button {
+    width: 100%;
+  }
+}
+
+/* Emergency handling after triage */
+.emergency-handling-panel {
+  border-color: rgba(248, 113, 113, 0.26);
+}
+
+.emergency-handling-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.emergency-handling-footer span {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.emergency-handling-footer strong {
+  color: #f8fafc;
+  font-size: 16px;
+}
+
+.save-emergency-handling-button {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  color: #eff6ff;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 12px 18px;
+}
+
+.save-emergency-handling-button:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .emergency-handling-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .save-emergency-handling-button {
+    width: 100%;
+  }
+}

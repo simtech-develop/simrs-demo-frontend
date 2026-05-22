@@ -59,6 +59,45 @@ type ApiEmergencyAssessment = {
   updatedAt: string
 }
 
+type EmergencyHandlingForm = {
+  workingDiagnosis: string
+  emergencyProcedure: string
+  therapyNote: string
+  disposition: string
+  dispositionNote: string
+}
+
+const emergencyHandlingStorageKey = 'simrs_emergency_handling_records'
+
+const emptyEmergencyHandlingForm: EmergencyHandlingForm = {
+  workingDiagnosis: '',
+  emergencyProcedure: '',
+  therapyNote: '',
+  disposition: 'Observasi Lanjutan',
+  dispositionNote: '',
+}
+
+const emergencyProcedureOptions = [
+  'Oksigenasi',
+  'Pemasangan Infus',
+  'Nebulizer',
+  'Injeksi Obat',
+  'EKG',
+  'Rawat Luka',
+  'Observasi IGD',
+  'Konsul Dokter Spesialis',
+  'Rujuk Penunjang',
+  'Resusitasi',
+]
+
+const emergencyDispositionOptions = [
+  'Observasi Lanjutan',
+  'Rawat Inap',
+  'Rujuk',
+  'Pulang',
+  'Meninggal',
+]
+
 type EmergencyAssessmentForm = {
   id: string
   registrationId: string
@@ -223,6 +262,10 @@ function EmergencyAssessmentPage() {
   const [isSaved, setIsSaved] = useState(false)
   const [loadError, setLoadError] = useState('')
   const [submitError, setSubmitError] = useState('')
+  const [handling, setHandling] = useState<EmergencyHandlingForm>(
+    emptyEmergencyHandlingForm,
+  )
+  const [handlingSaved, setHandlingSaved] = useState(false)
 
   const loadAssessmentPage = async () => {
     if (!id) {
@@ -240,6 +283,7 @@ function EmergencyAssessmentPage() {
       )
 
       setRegistration(registrationResponse)
+      loadEmergencyHandling(registrationResponse.id)
 
       const assessmentResponse = await ensureEmergencyAssessment(
         registrationResponse,
@@ -333,6 +377,71 @@ function EmergencyAssessmentPage() {
     value: string,
   ) => {
     updateField(field, normalizeEmergencyVitalValue(field, value) as never)
+  }
+
+  const loadEmergencyHandling = (registrationId: string) => {
+    try {
+      const currentValue = window.localStorage.getItem(
+        emergencyHandlingStorageKey,
+      )
+
+      if (!currentValue) {
+        return
+      }
+
+      const handlingRecords = JSON.parse(currentValue) as Record<
+        string,
+        EmergencyHandlingForm
+      >
+
+      if (handlingRecords[registrationId]) {
+        setHandling(handlingRecords[registrationId])
+        setHandlingSaved(true)
+      }
+    } catch (error) {
+      console.error('Gagal membaca penanganan IGD lokal:', error)
+    }
+  }
+
+  const updateHandlingField = <K extends keyof EmergencyHandlingForm>(
+    field: K,
+    value: EmergencyHandlingForm[K],
+  ) => {
+    setHandling((currentHandling) => ({
+      ...currentHandling,
+      [field]: value,
+    }))
+
+    if (handlingSaved) {
+      setHandlingSaved(false)
+    }
+  }
+
+  const saveEmergencyHandling = () => {
+    if (!registration) {
+      return
+    }
+
+    try {
+      const currentValue = window.localStorage.getItem(
+        emergencyHandlingStorageKey,
+      )
+
+      const handlingRecords: Record<string, EmergencyHandlingForm> =
+        currentValue ? JSON.parse(currentValue) : {}
+
+      handlingRecords[registration.id] = handling
+
+      window.localStorage.setItem(
+        emergencyHandlingStorageKey,
+        JSON.stringify(handlingRecords),
+      )
+
+      setHandlingSaved(true)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch (error) {
+      console.error('Gagal menyimpan penanganan IGD lokal:', error)
+    }
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -466,6 +575,16 @@ function EmergencyAssessmentPage() {
             <p>{assessment.triageLevel}</p>
           </div>
         </header>
+
+        {handlingSaved && (
+          <section className="registration-success-banner">
+            <strong>Penanganan IGD tersimpan.</strong>
+            <span>
+              Diagnosis, tindakan, terapi, dan disposisi pasien sudah tercatat
+              untuk kebutuhan demo lanjutan IGD.
+            </span>
+          </section>
+        )}
 
         {isSaved && (
           <section className="emergency-success-banner">
@@ -683,6 +802,116 @@ function EmergencyAssessmentPage() {
                 </label>
               </div>
             </article>
+
+            <article className="patient-form-panel emergency-handling-panel">
+              <div className="patient-form-title">
+                <small>04. PENANGANAN IGD</small>
+                <h2>Penanganan Setelah Triage</h2>
+                <p className="section-helper-text">
+                  Digunakan terutama untuk pasien triase merah/kuning sebelum
+                  diarahkan ke rawat inap, rujukan, observasi, farmasi, atau kasir.
+                </p>
+              </div>
+
+              <div className="form-grid">
+                <label>
+                  <span>Diagnosis Kerja IGD</span>
+                  <textarea
+                    value={handling.workingDiagnosis}
+                    onChange={(event) =>
+                      updateHandlingField(
+                        'workingDiagnosis',
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Contoh: sesak napas akut, trauma kepala, syok, ACS, dsb."
+                    rows={3}
+                  />
+                </label>
+
+                <label>
+                  <span>Tindakan IGD</span>
+                  <select
+                    value={handling.emergencyProcedure}
+                    onChange={(event) =>
+                      updateHandlingField(
+                        'emergencyProcedure',
+                        event.target.value,
+                      )
+                    }
+                  >
+                    <option value="">Pilih tindakan IGD</option>
+                    {emergencyProcedureOptions.map((procedure) => (
+                      <option value={procedure} key={procedure}>
+                        {procedure}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  <span>Terapi / Instruksi Awal</span>
+                  <textarea
+                    value={handling.therapyNote}
+                    onChange={(event) =>
+                      updateHandlingField('therapyNote', event.target.value)
+                    }
+                    placeholder="Contoh: oksigen nasal kanul 3 lpm, infus RL, injeksi sesuai instruksi dokter"
+                    rows={3}
+                  />
+                </label>
+
+                <label>
+                  <span>Disposisi Pasien</span>
+                  <select
+                    value={handling.disposition}
+                    onChange={(event) =>
+                      updateHandlingField('disposition', event.target.value)
+                    }
+                  >
+                    {emergencyDispositionOptions.map((disposition) => (
+                      <option value={disposition} key={disposition}>
+                        {disposition}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="full-span">
+                  <span>Catatan Disposisi</span>
+                  <textarea
+                    value={handling.dispositionNote}
+                    onChange={(event) =>
+                      updateHandlingField(
+                        'dispositionNote',
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Contoh: pasien perlu observasi 2 jam, konsul penyakit dalam, persiapan rawat inap, atau rujuk RS lanjutan"
+                    rows={3}
+                  />
+                </label>
+              </div>
+
+              <div className="emergency-handling-footer">
+                <div>
+                  <span>Status Penanganan</span>
+                  <strong>
+                    {handlingSaved ? 'Tersimpan' : 'Belum disimpan'}
+                  </strong>
+                </div>
+
+                <button
+                  type="button"
+                  className="save-emergency-handling-button"
+                  onClick={saveEmergencyHandling}
+                >
+                  Simpan Penanganan IGD
+                </button>
+              </div>
+            </article>
+
+
           </section>
 
           <aside className="emergency-assessment-summary">
