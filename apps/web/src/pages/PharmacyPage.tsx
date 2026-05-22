@@ -1,64 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-
-type PharmacyStatus =
-  | 'Order Masuk'
-  | 'Diverifikasi Farmasi'
-  | 'Obat Disiapkan'
-  | 'Obat Siap Diambil'
-  | 'Obat Diserahkan'
-  | 'Tidak Diambil'
-
-type BillingItem = {
-  source: string
-  category: string
-  itemName: string
-  quantity: number
-  unitPrice: number
-}
-
-type CashierPayment = {
-  patientName?: string
-  medicalRecordNo?: string
-  guarantor?: 'Umum' | 'BPJS' | 'Asuransi Lain'
-  insuranceNumber?: string
-  paymentStatus?: string
-  medicinePaymentApproval?: string
-  isMedicinePaymentApproved?: boolean
-  items?: BillingItem[]
-  savedAt?: string
-}
-
-type PharmacyQueuePatient = {
-  id: string
-  medicalRecordNo: string
-  patientName: string
-  sourceUnit: string
-  guarantor: string
-  cashierStatus: string
-  medicineApproval: string
-  pharmacyStatus: PharmacyStatus
-  medicineItems: BillingItem[]
-}
-
-const cashierPaymentStorageKey = 'simrs_cashier_payment_demo'
-const pharmacyQueueStorageKey = 'simrs_pharmacy_queue_demo'
-const pharmacyDispenseStorageKey = 'simrs_pharmacy_dispense_demo'
-
-const readStorage = <T,>(key: string): T | null => {
-  try {
-    const rawValue = window.localStorage.getItem(key)
-
-    if (!rawValue) {
-      return null
-    }
-
-    return JSON.parse(rawValue) as T
-  } catch (error) {
-    console.error(`Gagal membaca ${key}:`, error)
-    return null
-  }
-}
+import { readStorage, writeStorage } from '../services/simrsStorage'
+import { simrsStorageKeys } from '../services/simrsStorageKeys'
+import type {
+  BillingItem,
+  CashierPaymentDemo,
+  PharmacyQueuePatientDemo,
+  PharmacyStatus,
+} from '../types/simrs'
 
 const isMedicineItem = (item: BillingItem) =>
   item.category.toLowerCase().includes('obat') ||
@@ -66,7 +15,7 @@ const isMedicineItem = (item: BillingItem) =>
 
 
 function PharmacyPage() {
-  const [cashierPayment, setCashierPayment] = useState<CashierPayment | null>(
+  const [cashierPayment, setCashierPayment] = useState<CashierPaymentDemo | null>(
     null,
   )
   const [selectedQueuePatientId, setSelectedQueuePatientId] =
@@ -79,7 +28,7 @@ function PharmacyPage() {
   const [isSaved, setIsSaved] = useState(false)
 
   const reloadPharmacyQueue = () => {
-    setCashierPayment(readStorage<CashierPayment>(cashierPaymentStorageKey))
+    setCashierPayment(readStorage<CashierPaymentDemo>(simrsStorageKeys.cashierPayment))
     setIsSaved(false)
   }
 
@@ -87,9 +36,9 @@ function PharmacyPage() {
     reloadPharmacyQueue()
   }, [])
 
-  const pharmacyQueuePatients = useMemo<PharmacyQueuePatient[]>(() => {
+  const pharmacyQueuePatients = useMemo<PharmacyQueuePatientDemo[]>(() => {
     const queueFromCashier =
-      readStorage<PharmacyQueuePatient[]>(pharmacyQueueStorageKey) || []
+      readStorage<PharmacyQueuePatientDemo[]>(simrsStorageKeys.pharmacyQueue) || []
 
     if (queueFromCashier.length > 0) {
       return queueFromCashier.filter((patient) => patient.medicineItems.length > 0)
@@ -131,7 +80,7 @@ function PharmacyPage() {
       (patient) => patient.id === selectedQueuePatientId,
     ) || pharmacyQueuePatients[0]
 
-  const selectedMedicineItems = selectedQueuePatient?.medicineItems || []
+  const selectedMedicineItems: BillingItem[] = selectedQueuePatient?.medicineItems || []
 
   const canProcessPharmacy =
     selectedQueuePatient &&
@@ -155,10 +104,7 @@ function PharmacyPage() {
       savedAt: new Date().toISOString(),
     }
 
-    window.localStorage.setItem(
-      pharmacyDispenseStorageKey,
-      JSON.stringify(payload),
-    )
+    writeStorage(simrsStorageKeys.pharmacyDispense, payload)
 
     setIsSaved(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
