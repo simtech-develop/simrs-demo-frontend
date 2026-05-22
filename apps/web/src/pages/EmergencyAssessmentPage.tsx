@@ -108,6 +108,7 @@ const getEmergencyNextFlow = (disposition: string) => {
           'Pasien membutuhkan tindakan segera. Siapkan informed consent, DPJP/Operator, tindakan operasi/prosedur, dan koordinasi kamar tindakan/IBS.',
         primaryAction: 'Siapkan Ruang Tindakan',
         nextModule: 'IBS / Ruang Tindakan',
+        path: '/ruang-tindakan',
       }
     case 'Rawat Inap':
       return {
@@ -977,9 +978,12 @@ function EmergencyAssessmentPage() {
                   <strong>{emergencyNextFlow.nextModule}</strong>
                 </div>
 
-                <button type="button">
+                <Link
+                  className="emergency-next-flow-link"
+                  to={emergencyNextFlow.path || '/igd'}
+                >
                   {emergencyNextFlow.primaryAction}
-                </button>
+                </Link>
               </div>
 
             </article>
