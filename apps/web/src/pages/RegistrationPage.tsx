@@ -9,6 +9,23 @@ const visitChannels = [
   'IGD',
 ]
 
+const doctorOptions = {
+  poli: [
+    'dr. Andi Pratama',
+    'dr. Rina Marlina',
+    'dr. Budi Santoso, Sp.PD',
+    'dr. Siti Rahma, Sp.A',
+    'dr. Agus Wijaya, Sp.B',
+  ],
+  igd: [
+    'dr. Reza Firmansyah',
+    'dr. Maya Lestari',
+    'dr. Dimas Aditya',
+  ],
+}
+
+const allDoctorOptions = [...doctorOptions.poli, ...doctorOptions.igd]
+
 type ApiRegistrationStatus =
   | 'WAITING'
   | 'IN_SERVICE'
@@ -40,12 +57,28 @@ type ApiRegistration = {
   } | null
 }
 
+type ApiRegistrationDetail = ApiRegistration & {
+  payerType?: 'Umum' | 'BPJS' | 'Asuransi' | 'UMUM' | 'BPJS' | 'ASURANSI' | null
+  insuranceNo?: string | null
+  guarantorNo?: string | null
+  patient: ApiRegistration['patient'] & {
+    gender?: 'Laki-laki' | 'Perempuan' | 'MALE' | 'FEMALE' | null
+    birthDate?: string | null
+    dateOfBirth?: string | null
+    phone?: string | null
+    phoneNumber?: string | null
+    mobilePhone?: string | null
+    address?: string | null
+  }
+}
+
 type RegistrationRow = {
   id: string
   rm: string
   patient: string
   nik: string
   service: string
+  doctor: string
   type: string
   payerType: 'Umum' | 'BPJS' | 'Asuransi'
   insuranceNo: string
@@ -81,6 +114,7 @@ function mapRegistration(item: ApiRegistration): RegistrationRow {
     patient: item.patient.fullName,
     nik: item.patient.nationalId ?? '-',
     service: item.clinic.name,
+    doctor: item.doctor?.fullName ?? '-',
     type: item.clinic.code === 'IGD' ? 'IGD' : 'Pasien Baru',
     payerType: 'Umum',
     insuranceNo: '-',
@@ -91,6 +125,46 @@ function mapRegistration(item: ApiRegistration): RegistrationRow {
     queue: `${queuePrefix}-${String(item.queueNumber).padStart(3, '0')}`,
     status: mapStatus(item.status),
   }
+}
+
+function normalizeGender(
+  gender?: ApiRegistrationDetail['patient']['gender'],
+): RegistrationRow['gender'] {
+  if (gender === 'MALE') {
+    return 'Laki-laki'
+  }
+
+  if (gender === 'FEMALE') {
+    return 'Perempuan'
+  }
+
+  if (gender === 'Laki-laki' || gender === 'Perempuan') {
+    return gender
+  }
+
+  return '-'
+}
+
+function normalizeBirthDate(value?: string | null): string {
+  if (!value) {
+    return '-'
+  }
+
+  return value.includes('T') ? value.split('T')[0] : value
+}
+
+function normalizePayerType(
+  payerType?: ApiRegistrationDetail['payerType'],
+): RegistrationRow['payerType'] {
+  if (payerType === 'BPJS') {
+    return 'BPJS'
+  }
+
+  if (payerType === 'ASURANSI' || payerType === 'Asuransi') {
+    return 'Asuransi'
+  }
+
+  return 'Umum'
 }
 
 function RegistrationPage() {
@@ -175,7 +249,7 @@ function RegistrationPage() {
     }
 
     return registrations.filter((row) =>
-      [row.rm, row.patient, row.nik, row.service, row.queue]
+      [row.rm, row.patient, row.nik, row.service, row.doctor, row.queue]
         .join(' ')
         .toLowerCase()
         .includes(keyword),
@@ -184,26 +258,57 @@ function RegistrationPage() {
 
   const buildEditableRegistration = (
     registration: RegistrationRow,
-  ): RegistrationRow => ({
-    id: registration.id,
-    rm: registration.rm || '-',
-    patient: registration.patient || '',
-    nik: registration.nik || '',
-    service: registration.service || 'Poli Umum',
-    type: registration.type || 'Pasien Baru',
-    payerType: registration.payerType || 'Umum',
-    insuranceNo: registration.insuranceNo || '-',
-    phone: registration.phone || '-',
-    address: registration.address || '-',
-    gender: registration.gender || '-',
-    birthDate: registration.birthDate || '-',
-    queue: registration.queue || '-',
-    status: registration.status || 'Menunggu',
-  })
+    detail?: ApiRegistrationDetail,
+  ): RegistrationRow => {
+    const patient = detail?.patient
+    const payerType = normalizePayerType(detail?.payerType)
 
-  const openEditModal = (registration: RegistrationRow) => {
+    return {
+      id: registration.id,
+      rm: patient?.medicalRecordNo || registration.rm || '-',
+      patient: patient?.fullName || registration.patient || '',
+      nik: patient?.nationalId || registration.nik || '',
+      service: detail?.clinic?.name || registration.service || 'Poli Umum',
+      doctor: detail?.doctor?.fullName || registration.doctor || '-',
+      type:
+        detail?.clinic?.code === 'IGD'
+          ? 'IGD'
+          : registration.type || 'Pasien Baru',
+      payerType: detail ? payerType : registration.payerType || 'Umum',
+      insuranceNo:
+        detail?.insuranceNo ||
+        detail?.guarantorNo ||
+        registration.insuranceNo ||
+        '-',
+      phone:
+        patient?.phone ||
+        patient?.phoneNumber ||
+        patient?.mobilePhone ||
+        registration.phone ||
+        '-',
+      address: patient?.address || registration.address || '-',
+      gender: detail ? normalizeGender(patient?.gender) : registration.gender || '-',
+      birthDate: detail
+        ? normalizeBirthDate(patient?.birthDate || patient?.dateOfBirth)
+        : registration.birthDate || '-',
+      queue: registration.queue || '-',
+      status: detail ? mapStatus(detail.status) : registration.status || 'Menunggu',
+    }
+  }
+
+  const openEditModal = async (registration: RegistrationRow) => {
     setSelectedRegistration(buildEditableRegistration(registration))
     setIsEditModalOpen(true)
+
+    try {
+      const detail = await api.get<ApiRegistrationDetail>(
+        `/registrations/${registration.id}`,
+      )
+
+      setSelectedRegistration(buildEditableRegistration(registration, detail))
+    } catch (error) {
+      console.error('Gagal memuat detail pendaftaran untuk edit:', error)
+    }
   }
 
   const closeEditModal = () => {
@@ -315,6 +420,33 @@ function RegistrationPage() {
 
               <div className="search-filter-row">
                 <label>
+                  <span>Dokter Penanggung Jawab</span>
+                  <select
+                    value={selectedRegistration?.doctor ?? '-'}
+                    onChange={(event) =>
+                      setSelectedRegistration((currentRegistration) =>
+                        currentRegistration
+                          ? {
+                              ...currentRegistration,
+                              doctor: event.target.value,
+                            }
+                          : currentRegistration,
+                      )
+                    }
+                  >
+                    <option value="-">Belum Ditentukan</option>
+                    {((selectedRegistration?.service ?? '') === 'IGD'
+                      ? doctorOptions.igd
+                      : allDoctorOptions
+                    ).map((doctor) => (
+                      <option value={doctor} key={doctor}>
+                        {doctor}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
                   <span>Jenis Kunjungan</span>
                   <select defaultValue="all">
                     <option value="all">Semua</option>
@@ -408,6 +540,7 @@ function RegistrationPage() {
                   <th>Nama Pasien</th>
                   <th>NIK</th>
                   <th>Tujuan Layanan</th>
+                  <th>Dokter</th>
                   <th>Jenis Kunjungan</th>
                   <th>Penjamin</th>
                   <th>Antrean</th>
@@ -419,13 +552,13 @@ function RegistrationPage() {
               <tbody>
                 {isLoading && (
                   <tr>
-                    <td colSpan={9}>Memuat data pendaftaran dari backend...</td>
+                    <td colSpan={10}>Memuat data pendaftaran dari backend...</td>
                   </tr>
                 )}
 
                 {!isLoading && filteredRegistrations.length === 0 && (
                   <tr>
-                    <td colSpan={9}>Belum ada data pendaftaran.</td>
+                    <td colSpan={10}>Belum ada data pendaftaran.</td>
                   </tr>
                 )}
 
@@ -436,6 +569,7 @@ function RegistrationPage() {
                       <td>{row.patient}</td>
                       <td>{row.nik}</td>
                       <td>{row.service}</td>
+                      <td>{row.doctor}</td>
                       <td>{row.type}</td>
                       <td>{row.payerType}</td>
                       <td>{row.queue}</td>
