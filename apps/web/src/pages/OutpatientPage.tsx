@@ -32,7 +32,85 @@ type OutpatientQueueRow = {
   rm: string
   patient: string
   service: string
+  doctor: string
+  payerType: 'Umum' | 'BPJS' | 'Asuransi'
+  insuranceNo: string
   status: 'Menunggu' | 'Terverifikasi' | 'Dilayani' | 'Dibatalkan'
+}
+
+const REGISTRATION_EDIT_STORAGE_KEY = 'simrs_registration_edit_overrides'
+
+type RegistrationEditOverride = {
+  id: string
+  rm: string
+  patient: string
+  nik: string
+  service: string
+  doctor?: string
+  type: string
+  payerType?: 'Umum' | 'BPJS' | 'Asuransi'
+  insuranceNo?: string
+  phone?: string
+  address?: string
+  gender?: 'Laki-laki' | 'Perempuan' | '-'
+  birthDate?: string
+  queue: string
+  status: 'Menunggu' | 'Terverifikasi' | 'Dilayani' | 'Dibatalkan'
+}
+
+const getRegistrationOverride = (
+  row: Partial<OutpatientQueueRow>,
+): RegistrationEditOverride | null => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  try {
+    const currentValue = window.localStorage.getItem(
+      REGISTRATION_EDIT_STORAGE_KEY,
+    )
+
+    if (!currentValue) {
+      return null
+    }
+
+    const overrides = JSON.parse(currentValue) as Record<
+      string,
+      RegistrationEditOverride
+    >
+
+    const candidateKeys = [
+      row.id,
+      row.rm,
+      row.patient,
+      row.queue,
+    ].filter((key): key is string => Boolean(key))
+
+    for (const key of candidateKeys) {
+      if (overrides[key]) {
+        return overrides[key]
+      }
+    }
+
+    return null
+  } catch (error) {
+    console.error('Gagal membaca data pendaftaran lokal:', error)
+    return null
+  }
+}
+
+const normalizePayerLabel = (
+  payerType?: RegistrationEditOverride['payerType'],
+): OutpatientQueueRow['payerType'] => {
+  if (payerType === 'BPJS') {
+    return 'BPJS'
+  }
+
+  if (payerType === 'Asuransi') {
+    return 'Asuransi'
+  }
+
+  return 'Umum'
 }
 
 function mapStatus(status: ApiRegistrationStatus): OutpatientQueueRow['status'] {
@@ -53,7 +131,7 @@ function mapStatus(status: ApiRegistrationStatus): OutpatientQueueRow['status'] 
 function mapRegistrationToQueue(
   registration: ApiRegistration,
 ): OutpatientQueueRow {
-  return {
+  const baseRow: OutpatientQueueRow = {
     id: registration.id,
     queue: `${registration.clinic.code}-${String(
       registration.queueNumber,
@@ -61,7 +139,28 @@ function mapRegistrationToQueue(
     rm: registration.patient.medicalRecordNo,
     patient: registration.patient.fullName,
     service: registration.clinic.name,
+    doctor: '-',
+    payerType: 'Umum',
+    insuranceNo: '-',
     status: mapStatus(registration.status),
+  }
+
+  const override = getRegistrationOverride(baseRow)
+
+  if (!override) {
+    return baseRow
+  }
+
+  return {
+    ...baseRow,
+    queue: override.status === 'Dibatalkan' ? '-' : override.queue || baseRow.queue,
+    rm: override.rm || baseRow.rm,
+    patient: override.patient || baseRow.patient,
+    service: override.service || baseRow.service,
+    doctor: override.doctor || baseRow.doctor,
+    payerType: normalizePayerLabel(override.payerType),
+    insuranceNo: override.insuranceNo || '-',
+    status: override.status || baseRow.status,
   }
 }
 
@@ -82,6 +181,7 @@ function OutpatientPage() {
       const outpatientRows = registrations
         .filter((registration) => registration.clinic.code !== 'IGD')
         .map(mapRegistrationToQueue)
+        .filter((row) => row.status !== 'Dibatalkan')
 
       setOutpatientQueue(outpatientRows)
     } catch (error) {
@@ -112,6 +212,11 @@ function OutpatientPage() {
 
   const activePolyclinics = useMemo(
     () => new Set(outpatientQueue.map((item) => item.service)).size,
+    [outpatientQueue],
+  )
+
+  const bpjsPatients = useMemo(
+    () => outpatientQueue.filter((item) => item.payerType === 'BPJS').length,
     [outpatientQueue],
   )
 
@@ -190,9 +295,9 @@ function OutpatientPage() {
           </article>
 
           <article className="outpatient-stat-card">
-            <span>Integrasi Modul</span>
-            <strong>Live</strong>
-            <small>Dari API pendaftaran</small>
+            <span>Pasien BPJS</span>
+            <strong>{bpjsPatients}</strong>
+            <small>Penjamin BPJS Kesehatan</small>
           </article>
         </section>
 
@@ -211,7 +316,10 @@ function OutpatientPage() {
                     <th>No. RM</th>
                     <th>Nama Pasien</th>
                     <th>Tujuan Poli</th>
-                    <th>Status Registrasi</th>
+                    <th>Dokter</th>
+                    <th>Penjamin</th>
+                    <th>No. BPJS/Asuransi</th>
+                    <th>Status</th>
                     <th>Aksi</th>
                   </tr>
                 </thead>
@@ -219,13 +327,13 @@ function OutpatientPage() {
                 <tbody>
                   {isLoading && (
                     <tr>
-                      <td colSpan={6}>Memuat antrean rawat jalan...</td>
+                      <td colSpan={9}>Memuat antrean rawat jalan...</td>
                     </tr>
                   )}
 
                   {!isLoading && outpatientQueue.length === 0 && (
                     <tr>
-                      <td colSpan={6}>Belum ada antrean rawat jalan.</td>
+                      <td colSpan={9}>Belum ada antrean rawat jalan.</td>
                     </tr>
                   )}
 
@@ -237,13 +345,40 @@ function OutpatientPage() {
                         <td>{row.patient}</td>
                         <td>{row.service}</td>
                         <td>
+                          {row.doctor && row.doctor !== '-'
+                            ? row.doctor
+                            : 'Belum Ditentukan'}
+                        </td>
+                        <td>
+                          <span
+                            className={`registration-payer-badge ${
+                              row.payerType === 'BPJS'
+                                ? 'bpjs'
+                                : row.payerType === 'Asuransi'
+                                  ? 'insurance'
+                                  : 'general'
+                            }`}
+                          >
+                            {row.payerType}
+                          </span>
+                        </td>
+                        <td>
+                          {row.payerType === 'Umum'
+                            ? '-'
+                            : row.insuranceNo && row.insuranceNo !== '-'
+                              ? row.insuranceNo
+                              : 'Belum Diisi'}
+                        </td>
+                        <td>
                           <span
                             className={`registration-status ${
                               row.status === 'Menunggu'
                                 ? 'waiting'
                                 : row.status === 'Terverifikasi'
                                   ? 'verified'
-                                  : 'served'
+                                  : row.status === 'Dibatalkan'
+                                    ? 'canceled'
+                                    : 'served'
                             }`}
                           >
                             {row.status}
