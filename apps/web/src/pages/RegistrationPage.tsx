@@ -47,6 +47,12 @@ type RegistrationRow = {
   nik: string
   service: string
   type: string
+  payerType: 'Umum' | 'BPJS' | 'Asuransi'
+  insuranceNo: string
+  phone: string
+  address: string
+  gender: 'Laki-laki' | 'Perempuan' | '-'
+  birthDate: string
   queue: string
   status: 'Menunggu' | 'Terverifikasi' | 'Dilayani' | 'Dibatalkan'
 }
@@ -76,6 +82,12 @@ function mapRegistration(item: ApiRegistration): RegistrationRow {
     nik: item.patient.nationalId ?? '-',
     service: item.clinic.name,
     type: item.clinic.code === 'IGD' ? 'IGD' : 'Pasien Baru',
+    payerType: 'Umum',
+    insuranceNo: '-',
+    phone: '-',
+    address: '-',
+    gender: '-',
+    birthDate: '-',
     queue: `${queuePrefix}-${String(item.queueNumber).padStart(3, '0')}`,
     status: mapStatus(item.status),
   }
@@ -86,6 +98,9 @@ function RegistrationPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [selectedRegistration, setSelectedRegistration] =
+    useState<RegistrationRow | null>(null)
 
   const loadRegistrations = async () => {
     setIsLoading(true)
@@ -166,6 +181,51 @@ function RegistrationPage() {
         .includes(keyword),
     )
   }, [registrations, searchTerm])
+
+  const buildEditableRegistration = (
+    registration: RegistrationRow,
+  ): RegistrationRow => ({
+    id: registration.id,
+    rm: registration.rm || '-',
+    patient: registration.patient || '',
+    nik: registration.nik || '',
+    service: registration.service || 'Poli Umum',
+    type: registration.type || 'Pasien Baru',
+    payerType: registration.payerType || 'Umum',
+    insuranceNo: registration.insuranceNo || '-',
+    phone: registration.phone || '-',
+    address: registration.address || '-',
+    gender: registration.gender || '-',
+    birthDate: registration.birthDate || '-',
+    queue: registration.queue || '-',
+    status: registration.status || 'Menunggu',
+  })
+
+  const openEditModal = (registration: RegistrationRow) => {
+    setSelectedRegistration(buildEditableRegistration(registration))
+    setIsEditModalOpen(true)
+  }
+
+  const closeEditModal = () => {
+    setSelectedRegistration(null)
+    setIsEditModalOpen(false)
+  }
+
+  const saveRegistrationEdit = () => {
+    if (!selectedRegistration) {
+      return
+    }
+
+    setRegistrations((currentRegistrations) =>
+      currentRegistrations.map((registration) =>
+        registration.id === selectedRegistration.id
+          ? selectedRegistration
+          : registration,
+      ),
+    )
+
+    closeEditModal()
+  }
 
   const refreshData = () => {
     setSearchTerm('')
@@ -348,7 +408,8 @@ function RegistrationPage() {
                   <th>Nama Pasien</th>
                   <th>NIK</th>
                   <th>Tujuan Layanan</th>
-                  <th>Jenis</th>
+                  <th>Jenis Kunjungan</th>
+                  <th>Penjamin</th>
                   <th>Antrean</th>
                   <th>Status</th>
                   <th>Aksi</th>
@@ -358,13 +419,13 @@ function RegistrationPage() {
               <tbody>
                 {isLoading && (
                   <tr>
-                    <td colSpan={8}>Memuat data pendaftaran dari backend...</td>
+                    <td colSpan={9}>Memuat data pendaftaran dari backend...</td>
                   </tr>
                 )}
 
                 {!isLoading && filteredRegistrations.length === 0 && (
                   <tr>
-                    <td colSpan={8}>Belum ada data pendaftaran.</td>
+                    <td colSpan={9}>Belum ada data pendaftaran.</td>
                   </tr>
                 )}
 
@@ -376,6 +437,7 @@ function RegistrationPage() {
                       <td>{row.nik}</td>
                       <td>{row.service}</td>
                       <td>{row.type}</td>
+                      <td>{row.payerType}</td>
                       <td>{row.queue}</td>
                       <td>
                         <span
@@ -391,12 +453,22 @@ function RegistrationPage() {
                         </span>
                       </td>
                       <td>
-                        <Link
-                          className="detail-registration-link"
-                          to={`/pendaftaran/detail/${row.id}`}
-                        >
-                          Lihat Detail
-                        </Link>
+                        <div className="registration-action-row">
+                          <Link
+                            className="detail-registration-link"
+                            to={`/pendaftaran/detail/${row.id}`}
+                          >
+                            Lihat Detail
+                          </Link>
+
+                          <button
+                            className="edit-registration-button"
+                            type="button"
+                            onClick={() => openEditModal(row)}
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -404,6 +476,259 @@ function RegistrationPage() {
             </table>
           </div>
         </section>
+
+        {isEditModalOpen && selectedRegistration && (
+          <div className="registration-edit-modal-backdrop">
+            <div className="registration-edit-modal">
+              <div className="registration-edit-modal-header">
+                <div>
+                  <small>Koreksi Data Pendaftaran</small>
+                  <h2>Edit Data Pasien</h2>
+                  <p>
+                    Digunakan untuk memperbaiki kesalahan input saat proses
+                    pendaftaran pasien.
+                  </p>
+                </div>
+
+                <button type="button" onClick={closeEditModal}>
+                  ×
+                </button>
+              </div>
+
+              <div className="registration-edit-form-grid">
+                <label>
+                  <span>No. RM</span>
+                  <input value={selectedRegistration.rm} disabled />
+                </label>
+
+                <label>
+                  <span>NIK</span>
+                  <input
+                    value={selectedRegistration.nik}
+                    onChange={(event) =>
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        nik: event.target.value,
+                      })
+                    }
+                    placeholder="Masukkan NIK pasien"
+                  />
+                </label>
+
+                <label>
+                  <span>Nama Lengkap Pasien</span>
+                  <input
+                    value={selectedRegistration.patient}
+                    onChange={(event) =>
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        patient: event.target.value,
+                      })
+                    }
+                    placeholder="Masukkan nama lengkap pasien"
+                  />
+                </label>
+
+                <label>
+                  <span>Jenis Kelamin</span>
+                  <select
+                    value={selectedRegistration.gender}
+                    onChange={(event) =>
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        gender: event.target.value as RegistrationRow['gender'],
+                      })
+                    }
+                  >
+                    <option value="-">Belum Diisi</option>
+                    <option value="Laki-laki">Laki-laki</option>
+                    <option value="Perempuan">Perempuan</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Tanggal Lahir</span>
+                  <input
+                    type="date"
+                    value={
+                      selectedRegistration.birthDate === '-'
+                        ? ''
+                        : selectedRegistration.birthDate
+                    }
+                    onChange={(event) =>
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        birthDate: event.target.value || '-',
+                      })
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>No. HP / Kontak</span>
+                  <input
+                    value={selectedRegistration.phone}
+                    onChange={(event) =>
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        phone: event.target.value,
+                      })
+                    }
+                    placeholder="Contoh: 081234567890"
+                  />
+                </label>
+
+                <label className="full-width">
+                  <span>Alamat Pasien</span>
+                  <textarea
+                    value={selectedRegistration.address}
+                    onChange={(event) =>
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        address: event.target.value,
+                      })
+                    }
+                    placeholder="Masukkan alamat pasien"
+                    rows={3}
+                  />
+                </label>
+
+                <label>
+                  <span>Tujuan Layanan</span>
+                  <select
+                    value={selectedRegistration.service}
+                    onChange={(event) =>
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        service: event.target.value,
+                      })
+                    }
+                  >
+                    <option value="Poli Umum">Poli Umum</option>
+                    <option value="IGD">IGD</option>
+                    <option value="Poli Penyakit Dalam">
+                      Poli Penyakit Dalam
+                    </option>
+                    <option value="Poli Anak">Poli Anak</option>
+                    <option value="Poli Bedah">Poli Bedah</option>
+                    <option value="Poli Kandungan">Poli Kandungan</option>
+                    <option value="Poli Gigi">Poli Gigi</option>
+                    <option value="Laboratorium">Laboratorium</option>
+                    <option value="Radiologi">Radiologi</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Jenis Kunjungan</span>
+                  <select
+                    value={selectedRegistration.type}
+                    onChange={(event) =>
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        type: event.target.value,
+                      })
+                    }
+                  >
+                    <option value="Pasien Baru">Pasien Baru</option>
+                    <option value="Pasien Lama">Pasien Lama</option>
+                    <option value="Kontrol Ulang">Kontrol Ulang</option>
+                    <option value="Rujukan">Rujukan</option>
+                    <option value="IGD">IGD</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Jenis Pasien / Penjamin</span>
+                  <select
+                    value={selectedRegistration.payerType}
+                    onChange={(event) =>
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        payerType: event.target.value as RegistrationRow['payerType'],
+                        insuranceNo:
+                          event.target.value === 'Umum'
+                            ? '-'
+                            : selectedRegistration.insuranceNo,
+                      })
+                    }
+                  >
+                    <option value="Umum">Umum / Mandiri</option>
+                    <option value="BPJS">BPJS Kesehatan</option>
+                    <option value="Asuransi">Asuransi / Perusahaan</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>
+                    {selectedRegistration.payerType === 'BPJS'
+                      ? 'No. Kartu BPJS'
+                      : selectedRegistration.payerType === 'Asuransi'
+                        ? 'No. Polis / Kartu Asuransi'
+                        : 'No. Penjamin'}
+                  </span>
+                  <input
+                    value={selectedRegistration.insuranceNo}
+                    disabled={selectedRegistration.payerType === 'Umum'}
+                    onChange={(event) =>
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        insuranceNo: event.target.value,
+                      })
+                    }
+                    placeholder={
+                      selectedRegistration.payerType === 'BPJS'
+                        ? 'Masukkan nomor kartu BPJS'
+                        : selectedRegistration.payerType === 'Asuransi'
+                          ? 'Masukkan nomor kartu asuransi'
+                          : '-'
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>Nomor Antrean</span>
+                  <input
+                    value={selectedRegistration.queue}
+                    onChange={(event) =>
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        queue: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+
+                <label>
+                  <span>Status Registrasi</span>
+                  <select
+                    value={selectedRegistration.status}
+                    onChange={(event) =>
+                      setSelectedRegistration({
+                        ...selectedRegistration,
+                        status: event.target.value as RegistrationRow['status'],
+                      })
+                    }
+                  >
+                    <option value="Menunggu">Menunggu</option>
+                    <option value="Terverifikasi">Terverifikasi</option>
+                    <option value="Dilayani">Dilayani</option>
+                    <option value="Dibatalkan">Dibatalkan</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="registration-edit-modal-footer">
+                <button type="button" onClick={closeEditModal}>
+                  Batal
+                </button>
+
+                <button type="button" onClick={saveRegistrationEdit}>
+                  Simpan Perubahan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     </main>
   )
