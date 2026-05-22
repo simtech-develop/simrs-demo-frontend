@@ -2,6 +2,121 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { api } from '../lib/api'
 
+type RmePrescriptionDisplayItem = {
+  medicineName: string
+  medicineForm: string
+  dosage: string
+  frequency: string
+  quantity: string
+  instruction: string
+}
+
+const parseRmePrescriptionNote = (
+  note?: string | null,
+): RmePrescriptionDisplayItem[] => {
+  if (!note || note.trim() === '') {
+    return []
+  }
+
+  return note
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const normalizedLine = line.replace(/^\d+\.\s*/, '')
+      const segments = normalizedLine
+        .split('|')
+        .map((segment) => segment.trim())
+
+      const medicineName = segments[0] || '-'
+
+      const getSegmentValue = (label: string) =>
+        segments
+          .find((segment) => segment.startsWith(`${label}:`))
+          ?.replace(`${label}:`, '')
+          .trim() || '-'
+
+      return {
+        medicineName,
+        medicineForm: getSegmentValue('Bentuk'),
+        dosage: getSegmentValue('Dosis'),
+        frequency: getSegmentValue('Frekuensi'),
+        quantity: getSegmentValue('Jumlah'),
+        instruction: getSegmentValue('Aturan'),
+      }
+    })
+}
+
+
+const REGISTRATION_EDIT_STORAGE_KEY = 'simrs_registration_edit_overrides'
+
+type RegistrationEditOverride = {
+  id: string
+  rm: string
+  patient: string
+  nik: string
+  service: string
+  doctor?: string
+  type: string
+  payerType?: 'Umum' | 'BPJS' | 'Asuransi'
+  insuranceNo?: string
+  phone?: string
+  address?: string
+  gender?: 'Laki-laki' | 'Perempuan' | '-'
+  birthDate?: string
+  queue: string
+  status: 'Menunggu' | 'Terverifikasi' | 'Dilayani' | 'Dibatalkan'
+}
+
+const getRegistrationEditOverride = (
+  candidateKeys: Array<string | undefined | null>,
+): RegistrationEditOverride | null => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  try {
+    const currentValue = window.localStorage.getItem(
+      REGISTRATION_EDIT_STORAGE_KEY,
+    )
+
+    if (!currentValue) {
+      return null
+    }
+
+    const overrides = JSON.parse(currentValue) as Record<
+      string,
+      RegistrationEditOverride
+    >
+
+    const keys = candidateKeys.filter((key): key is string => Boolean(key))
+
+    for (const key of keys) {
+      if (overrides[key]) {
+        return overrides[key]
+      }
+    }
+
+    return null
+  } catch (error) {
+    console.error('Gagal membaca override registrasi untuk RME:', error)
+    return null
+  }
+}
+
+const mapPayerTypeLabel = (payerType?: string) => {
+  if (payerType === 'BPJS') {
+    return 'BPJS Kesehatan'
+  }
+
+  if (payerType === 'Asuransi') {
+    return 'Asuransi / Perusahaan'
+  }
+
+  return 'Umum / Mandiri'
+}
+
+
 type ApiMedicalRecord = {
   id: string
   registrationId: string
@@ -216,7 +331,99 @@ function MedicalRecordDetailPage() {
 
   const registration = medicalRecord.registration
   const patient = registration.patient
-  const clinic = registration.clinic
+  const rmeRecordAny = medicalRecord as any
+  const rmeRegistrationAny =
+    rmeRecordAny?.registration ||
+    rmeRecordAny?.registrationData ||
+    rmeRecordAny?.registrationDetail ||
+    {}
+
+  const rmePatientAny =
+    rmeRegistrationAny?.patient ||
+    rmeRecordAny?.patient ||
+    rmeRecordAny?.patientData ||
+    {}
+
+  const rmeClinicAny =
+    rmeRegistrationAny?.clinic ||
+    rmeRecordAny?.clinic ||
+    rmeRecordAny?.clinicData ||
+    {}
+
+  const rawRmeQueue =
+    rmeRegistrationAny?.queue ||
+    rmeRegistrationAny?.queueNumberLabel ||
+    rmeRecordAny?.queue ||
+    rmeRecordAny?.queueNumberLabel ||
+    (rmeRegistrationAny?.queueNumber
+      ? `${rmeClinicAny?.code || 'UMUM'}-${String(
+          rmeRegistrationAny.queueNumber,
+        ).padStart(3, '0')}`
+      : '')
+
+  const rmeRegistrationOverride = getRegistrationEditOverride([
+    rmeRegistrationAny?.id,
+    rmeRecordAny?.registrationId,
+    rmePatientAny?.medicalRecordNo,
+    rmeRecordAny?.medicalRecordNo,
+    rmePatientAny?.fullName,
+    rmeRecordAny?.patientName,
+    rawRmeQueue,
+  ])
+
+  const displayRmeMedicalRecordNo =
+    rmeRegistrationOverride?.rm ||
+    rmePatientAny?.medicalRecordNo ||
+    rmeRecordAny?.medicalRecordNo ||
+    '-'
+
+  const displayRmePatientName =
+    rmeRegistrationOverride?.patient ||
+    rmePatientAny?.fullName ||
+    rmeRecordAny?.patientName ||
+    rmeRecordAny?.patient ||
+    '-'
+
+  const displayRmeService =
+    rmeRegistrationOverride?.service ||
+    rmeClinicAny?.name ||
+    rmeRecordAny?.clinicName ||
+    rmeRecordAny?.service ||
+    '-'
+
+  const displayRmeDoctor =
+    rmeRegistrationOverride?.doctor && rmeRegistrationOverride.doctor !== '-'
+      ? rmeRegistrationOverride.doctor
+      : rmeRegistrationAny?.doctor?.fullName ||
+        rmeRecordAny?.doctor?.fullName ||
+        rmeRecordAny?.doctorName ||
+        '-'
+
+  const displayRmeQueue =
+    rmeRegistrationOverride?.queue ||
+    rawRmeQueue ||
+    '-'
+
+  const displayRmePayerType = mapPayerTypeLabel(
+    rmeRegistrationOverride?.payerType,
+  )
+
+  const displayRmeInsuranceNo =
+    rmeRegistrationOverride?.insuranceNo &&
+    rmeRegistrationOverride.insuranceNo !== '-'
+      ? rmeRegistrationOverride.insuranceNo
+      : rmeRecordAny?.insuranceNo ||
+        rmeRecordAny?.guarantorNo ||
+        rmeRecordAny?.guarantorNumber ||
+        '-'
+
+  void displayRmePatientName
+
+  const displayRmePrescriptionItems = parseRmePrescriptionNote(
+    rmeRecordAny?.prescriptionNote ||
+      rmeRecordAny?.prescription ||
+      rmeRecordAny?.recipeNote,
+  )
 
   return (
     <main className="rme-detail-app">
@@ -273,17 +480,17 @@ function MedicalRecordDetailPage() {
         <section className="rme-patient-banner">
           <article>
             <span>No. RM</span>
-            <strong>{patient.medicalRecordNo}</strong>
+            <strong>{displayRmeMedicalRecordNo}</strong>
           </article>
 
           <article>
             <span>Pasien</span>
-            <strong>{patient.fullName}</strong>
+            <strong>{displayRmePatientName}</strong>
           </article>
 
           <article>
             <span>Poli</span>
-            <strong>{clinic.name}</strong>
+            <strong>{displayRmeService}</strong>
           </article>
 
           <article>
@@ -386,20 +593,72 @@ function MedicalRecordDetailPage() {
 
               <div>
                 <span>Nomor Antrean</span>
-                <strong>
-                  {clinic.code}-
-                  {String(registration.queueNumber).padStart(3, '0')}
-                </strong>
+                <strong>{displayRmeQueue}</strong>
+              </div>
+
+              <div>
+                <span>Penjamin Pasien</span>
+                <strong>{displayRmePayerType}</strong>
+              </div>
+
+              <div>
+                <span>No. BPJS / Asuransi</span>
+                <strong>{displayRmeInsuranceNo}</strong>
               </div>
 
               <div>
                 <span>Dokter</span>
-                <strong>
-                  {displayValue(registration.doctor?.fullName ?? '-')}
-                </strong>
+                <strong>{displayRmeDoctor}</strong>
               </div>
             </div>
           </article>
+          <section className="medical-record-section rme-prescription-section">
+            <div className="medical-record-section-title">
+              <small>TERAPI</small>
+              <h2>Resep Obat</h2>
+            </div>
+
+            {displayRmePrescriptionItems.length > 0 ? (
+              <div className="rme-prescription-list">
+                {displayRmePrescriptionItems.map((item, index) => (
+                  <article className="rme-prescription-card" key={`${item.medicineName}-${index}`}>
+                    <div>
+                      <small>Obat {index + 1}</small>
+                      <strong>{item.medicineName}</strong>
+                    </div>
+
+                    <dl>
+                      <div>
+                        <dt>Bentuk</dt>
+                        <dd>{item.medicineForm}</dd>
+                      </div>
+                      <div>
+                        <dt>Dosis</dt>
+                        <dd>{item.dosage}</dd>
+                      </div>
+                      <div>
+                        <dt>Frekuensi</dt>
+                        <dd>{item.frequency}</dd>
+                      </div>
+                      <div>
+                        <dt>Jumlah</dt>
+                        <dd>{item.quantity}</dd>
+                      </div>
+                      <div className="full-span">
+                        <dt>Aturan Pakai</dt>
+                        <dd>{item.instruction}</dd>
+                      </div>
+                    </dl>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="rme-empty-prescription">
+                Belum ada resep obat yang tercatat pada pemeriksaan ini.
+              </div>
+            )}
+          </section>
+
         </section>
       </section>
     </main>

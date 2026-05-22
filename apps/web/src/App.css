@@ -5950,3 +5950,124 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Outpatient vital input unit */
+.vital-input-with-unit {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.vital-input-with-unit input {
+  width: 100%;
+  padding-right: 92px;
+}
+
+.vital-input-with-unit span {
+  position: absolute;
+  right: 14px;
+  color: #7dd3fc;
+  font-size: 13px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.remove-prescription-button {
+  border: 1px solid rgba(239, 68, 68, 0.36);
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.remove-prescription-button:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* RME prescription display */
+.rme-prescription-section {
+  margin-top: 18px;
+}
+
+.rme-prescription-list {
+  display: grid;
+  gap: 14px;
+}
+
+.rme-prescription-card {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 18px;
+}
+
+.rme-prescription-card > div:first-child {
+  margin-bottom: 14px;
+}
+
+.rme-prescription-card small {
+  display: block;
+  color: #7dd3fc;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.rme-prescription-card strong {
+  color: #f8fafc;
+  font-size: 18px;
+}
+
+.rme-prescription-card dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.rme-prescription-card dl div {
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.42);
+}
+
+.rme-prescription-card dt {
+  color: #94a3b8;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.rme-prescription-card dd {
+  color: #e2e8f0;
+  margin: 0;
+  font-size: 14px;
+}
+
+.rme-prescription-card .full-span {
+  grid-column: 1 / -1;
+}
+
+.rme-empty-prescription {
+  border: 1px dashed rgba(148, 163, 184, 0.3);
+  border-radius: 18px;
+  padding: 18px;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.46);
+}
+
+@media (max-width: 900px) {
+  .rme-prescription-card dl {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .rme-prescription-card dl {
+    grid-template-columns: 1fr;
+  }
+}

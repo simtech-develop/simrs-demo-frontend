@@ -70,10 +70,38 @@ type ExamForm = {
 type PrescriptionItem = {
   id: string
   medicineName: string
+  medicineForm: string
   dosage: string
   frequency: string
   quantity: string
   instruction: string
+}
+
+const vitalUnitByField: Partial<Record<keyof ExamForm, string>> = {
+  bloodPressure: 'mmHg',
+  pulse: 'x/menit',
+  temperature: '°C',
+  weight: 'kg',
+}
+
+const stripVitalUnit = (value: string, unit: string) =>
+  value.replace(new RegExp(`\\s*${unit.replace('/', '\\/')}\\s*$`, 'i'), '').trim()
+
+const normalizeVitalValue = (field: keyof ExamForm, value: string) => {
+  const unit = vitalUnitByField[field]
+  const cleanValue = unit ? stripVitalUnit(value, unit) : value.trim()
+
+  if (!unit || cleanValue === '') {
+    return cleanValue
+  }
+
+  return `${cleanValue} ${unit}`
+}
+
+const normalizeVitalTyping = (field: keyof ExamForm, value: string) => {
+  const unit = vitalUnitByField[field]
+
+  return unit ? stripVitalUnit(value, unit) : value
 }
 
 const emptyExamForm: ExamForm = {
@@ -88,9 +116,151 @@ const emptyExamForm: ExamForm = {
   doctorNote: '',
 }
 
+type DrugCatalogItem = {
+  name: string
+  form: string
+  defaultDosage: string
+  defaultFrequency: string
+  defaultQuantity: string
+  defaultInstruction: string
+}
+
+const drugCatalog: DrugCatalogItem[] = [
+  {
+    name: 'Paracetamol 500 mg',
+    form: 'Tablet',
+    defaultDosage: '1 tablet',
+    defaultFrequency: '3x sehari',
+    defaultQuantity: '10 tablet',
+    defaultInstruction: 'Diminum sesudah makan',
+  },
+  {
+    name: 'Amoxicillin 500 mg',
+    form: 'Kapsul',
+    defaultDosage: '1 kapsul',
+    defaultFrequency: '3x sehari',
+    defaultQuantity: '10 kapsul',
+    defaultInstruction: 'Diminum sampai habis sesudah makan',
+  },
+  {
+    name: 'Cetirizine 10 mg',
+    form: 'Tablet',
+    defaultDosage: '1 tablet',
+    defaultFrequency: '1x sehari',
+    defaultQuantity: '10 tablet',
+    defaultInstruction: 'Diminum malam hari',
+  },
+  {
+    name: 'Ambroxol Sirup 15 mg/5 ml',
+    form: 'Sirup',
+    defaultDosage: '1 sendok takar',
+    defaultFrequency: '3x sehari',
+    defaultQuantity: '1 botol',
+    defaultInstruction: 'Diminum sesudah makan',
+  },
+  {
+    name: 'Antasida Doen',
+    form: 'Tablet kunyah',
+    defaultDosage: '1 tablet',
+    defaultFrequency: '3x sehari',
+    defaultQuantity: '10 tablet',
+    defaultInstruction: 'Dikunyah sebelum makan',
+  },
+  {
+    name: 'Vitamin B Complex',
+    form: 'Tablet',
+    defaultDosage: '1 tablet',
+    defaultFrequency: '1x sehari',
+    defaultQuantity: '10 tablet',
+    defaultInstruction: 'Diminum sesudah makan',
+  },
+  {
+    name: 'Salep Hidrokortison 1%',
+    form: 'Salep',
+    defaultDosage: 'Oles tipis',
+    defaultFrequency: '2x sehari',
+    defaultQuantity: '1 tube',
+    defaultInstruction: 'Dioleskan pada area keluhan',
+  },
+  {
+    name: 'Oralit',
+    form: 'Sachet',
+    defaultDosage: '1 sachet',
+    defaultFrequency: 'Setiap setelah BAB cair',
+    defaultQuantity: '5 sachet',
+    defaultInstruction: 'Larutkan dalam 200 ml air matang',
+  },
+  {
+    name: 'Puyer Batuk Pilek Anak',
+    form: 'Puyer',
+    defaultDosage: '1 bungkus',
+    defaultFrequency: '3x sehari',
+    defaultQuantity: '10 bungkus',
+    defaultInstruction: 'Diminum sesudah makan',
+  },
+  {
+    name: 'Tetes Mata Cendo Lyteers',
+    form: 'Tetes',
+    defaultDosage: '1-2 tetes',
+    defaultFrequency: '3x sehari',
+    defaultQuantity: '1 botol',
+    defaultInstruction: 'Diteteskan pada mata yang sakit',
+  },
+]
+
+const medicineFormOptions = [
+  'Tablet',
+  'Tablet kunyah',
+  'Kapsul',
+  'Sirup',
+  'Puyer',
+  'Sachet',
+  'Salep',
+  'Tetes',
+  'Injeksi',
+  'Suppositoria',
+]
+
+const dosageOptionsByForm: Record<string, string[]> = {
+  Tablet: ['1/2 tablet', '1 tablet', '2 tablet'],
+  'Tablet kunyah': ['1 tablet', '2 tablet'],
+  Kapsul: ['1 kapsul', '2 kapsul'],
+  Sirup: ['1/2 sendok takar', '1 sendok takar', '2 sendok takar', '5 ml', '10 ml'],
+  Puyer: ['1 bungkus', '1/2 bungkus'],
+  Sachet: ['1 sachet', '2 sachet'],
+  Salep: ['Oles tipis', 'Oles secukupnya'],
+  Tetes: ['1 tetes', '1-2 tetes', '2 tetes'],
+  Injeksi: ['1 ampul', '1 vial'],
+  Suppositoria: ['1 suppositoria'],
+}
+
+const frequencyOptions = [
+  '1x sehari',
+  '2x sehari',
+  '3x sehari',
+  '4x sehari',
+  'Setiap 6 jam',
+  'Setiap 8 jam',
+  'Jika perlu',
+  'Setiap setelah BAB cair',
+]
+
+const instructionOptions = [
+  'Diminum sebelum makan',
+  'Diminum sesudah makan',
+  'Diminum malam hari',
+  'Diminum sampai habis sesudah makan',
+  'Dikunyah sebelum makan',
+  'Dilarutkan dalam air matang',
+  'Dioleskan pada area keluhan',
+  'Diteteskan pada area yang sakit',
+  'Jika demam atau nyeri',
+]
+
 const createEmptyPrescription = (): PrescriptionItem => ({
   id: `rx-${Date.now()}-${Math.random().toString(16).slice(2)}`,
   medicineName: '',
+  medicineForm: '',
   dosage: '',
   frequency: '',
   quantity: '',
@@ -137,7 +307,9 @@ function buildPrescriptionNote(items: PrescriptionItem[]) {
   return items
     .map(
       (item, index) =>
-        `${index + 1}. ${item.medicineName} | Dosis: ${item.dosage} | Frekuensi: ${
+        `${index + 1}. ${item.medicineName} | Bentuk: ${
+          item.medicineForm || '-'
+        } | Dosis: ${item.dosage} | Frekuensi: ${
           item.frequency
         } | Jumlah: ${item.quantity} | Aturan: ${
           item.instruction || '-'
@@ -189,6 +361,9 @@ function parsePrescriptionNote(note?: string | null): PrescriptionItem[] {
     return {
       id: `rx-existing-${index}-${Date.now()}`,
       medicineName,
+      medicineForm:
+        segments.find((segment) => segment.startsWith('Bentuk:'))?.replace('Bentuk:', '').trim() ??
+        '',
       dosage,
       frequency,
       quantity,
@@ -355,6 +530,33 @@ function OutpatientExaminationPage() {
   const [pharmacyMessage, setPharmacyMessage] = useState('')
   const [cashierMessage, setCashierMessage] = useState('')
 
+  const updateExamField = (field: keyof ExamForm, value: string) => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      [field]: value,
+    }))
+  }
+
+  const updateVitalFieldTyping = (field: keyof ExamForm, value: string) => {
+    updateExamField(field, normalizeVitalTyping(field, value))
+  }
+
+  const finalizeVitalField = (field: keyof ExamForm, value: string) => {
+    updateExamField(field, normalizeVitalValue(field, value))
+  }
+
+  const removePrescriptionItem = (prescriptionId: string) => {
+    setPrescriptions((currentPrescriptions) => {
+      if (currentPrescriptions.length <= 1) {
+        return [createEmptyPrescription()]
+      }
+
+      return currentPrescriptions.filter(
+        (prescription) => prescription.id !== prescriptionId,
+      )
+    })
+  }
+
   const loadPageData = async () => {
     if (!id) {
       setLoadError('ID registrasi tidak tersedia.')
@@ -433,6 +635,36 @@ function OutpatientExaminationPage() {
     }
   }
 
+  const applyDrugCatalogItem = (
+    prescriptionId: string,
+    medicineName: string,
+  ) => {
+    const selectedDrug = drugCatalog.find((drug) => drug.name === medicineName)
+
+    setPrescriptions((currentPrescriptions) =>
+      currentPrescriptions.map((prescription) =>
+        prescription.id === prescriptionId
+          ? {
+              ...prescription,
+              medicineName,
+              medicineForm:
+                selectedDrug?.form || prescription.medicineForm || '',
+              dosage:
+                selectedDrug?.defaultDosage || prescription.dosage || '',
+              frequency:
+                selectedDrug?.defaultFrequency || prescription.frequency || '',
+              quantity:
+                selectedDrug?.defaultQuantity || prescription.quantity || '',
+              instruction:
+                selectedDrug?.defaultInstruction ||
+                prescription.instruction ||
+                '',
+            }
+          : prescription,
+      ),
+    )
+  }
+
   const updatePrescription = (
     itemId: string,
     field: keyof Omit<PrescriptionItem, 'id'>,
@@ -460,14 +692,6 @@ function OutpatientExaminationPage() {
 
   const addPrescription = () => {
     setPrescriptions((current) => [...current, createEmptyPrescription()])
-  }
-
-  const removePrescription = (itemId: string) => {
-    setPrescriptions((current) =>
-      current.length === 1
-        ? current
-        : current.filter((item) => item.id !== itemId),
-    )
   }
 
   const validPrescriptions = prescriptions.filter(
@@ -788,51 +1012,71 @@ function OutpatientExaminationPage() {
               <div className="form-grid two-columns">
                 <label>
                   <span>Tekanan Darah</span>
-                  <input
-                    type="text"
-                    value={form.bloodPressure}
-                    onChange={(event) =>
-                      updateField('bloodPressure', event.target.value)
-                    }
-                    placeholder="Contoh: 120/80 mmHg"
-                  />
-                </label>
+                  <div className="vital-input-with-unit">
+                    <input
+                      value={form.bloodPressure}
+                      onChange={(event) =>
+                        updateVitalFieldTyping('bloodPressure', event.target.value)
+                      }
+                      onBlur={(event) =>
+                        finalizeVitalField('bloodPressure', event.target.value)
+                      }
+                      placeholder="Contoh: 120/80"
+                    />
+                    <span>{vitalUnitByField.bloodPressure}</span>
+                  </div>
+                  </label>
 
                 <label>
                   <span>Nadi</span>
-                  <input
-                    type="text"
-                    value={form.pulse}
-                    onChange={(event) =>
-                      updateField('pulse', event.target.value)
-                    }
-                    placeholder="Contoh: 82 x/menit"
-                  />
-                </label>
+                  <div className="vital-input-with-unit">
+                    <input
+                      value={form.pulse}
+                      onChange={(event) =>
+                        updateVitalFieldTyping('pulse', event.target.value)
+                      }
+                      onBlur={(event) =>
+                        finalizeVitalField('pulse', event.target.value)
+                      }
+                      placeholder="Contoh: 82"
+                    />
+                    <span>{vitalUnitByField.pulse}</span>
+                  </div>
+                  </label>
 
                 <label>
                   <span>Suhu</span>
-                  <input
-                    type="text"
-                    value={form.temperature}
-                    onChange={(event) =>
-                      updateField('temperature', event.target.value)
-                    }
-                    placeholder="Contoh: 36.7 °C"
-                  />
-                </label>
+                  <div className="vital-input-with-unit">
+                    <input
+                      value={form.temperature}
+                      onChange={(event) =>
+                        updateVitalFieldTyping('temperature', event.target.value)
+                      }
+                      onBlur={(event) =>
+                        finalizeVitalField('temperature', event.target.value)
+                      }
+                      placeholder="Contoh: 36.8"
+                    />
+                    <span>{vitalUnitByField.temperature}</span>
+                  </div>
+                  </label>
 
                 <label>
                   <span>Berat Badan</span>
-                  <input
-                    type="text"
-                    value={form.weight}
-                    onChange={(event) =>
-                      updateField('weight', event.target.value)
-                    }
-                    placeholder="Contoh: 62 kg"
-                  />
-                </label>
+                  <div className="vital-input-with-unit">
+                    <input
+                      value={form.weight}
+                      onChange={(event) =>
+                        updateVitalFieldTyping('weight', event.target.value)
+                      }
+                      onBlur={(event) =>
+                        finalizeVitalField('weight', event.target.value)
+                      }
+                      placeholder="Contoh: 70"
+                    />
+                    <span>{vitalUnitByField.weight}</span>
+                  </div>
+                  </label>
               </div>
             </article>
 
@@ -905,7 +1149,8 @@ function OutpatientExaminationPage() {
 
                       <button
                         type="button"
-                        onClick={() => removePrescription(item.id)}
+                        className="remove-prescription-button"
+                        onClick={() => removePrescriptionItem(item.id)}
                       >
                         Hapus
                       </button>
@@ -914,24 +1159,45 @@ function OutpatientExaminationPage() {
                     <div className="form-grid two-columns">
                       <label>
                         <span>Nama Obat</span>
-                        <input
-                          type="text"
+                        <select
                           value={item.medicineName}
+                          onChange={(event) =>
+                            applyDrugCatalogItem(item.id, event.target.value)
+                          }
+                        >
+                          <option value="">Pilih obat dari database</option>
+                          {drugCatalog.map((drug) => (
+                            <option value={drug.name} key={drug.name}>
+                              {drug.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Bentuk / Sediaan</span>
+                        <select
+                          value={item.medicineForm}
                           onChange={(event) =>
                             updatePrescription(
                               item.id,
-                              'medicineName',
+                              'medicineForm',
                               event.target.value,
                             )
                           }
-                          placeholder="Contoh: Paracetamol 500 mg"
-                        />
+                        >
+                          <option value="">Pilih bentuk obat</option>
+                          {medicineFormOptions.map((formOption) => (
+                            <option value={formOption} key={formOption}>
+                              {formOption}
+                            </option>
+                          ))}
+                        </select>
                       </label>
 
                       <label>
                         <span>Dosis</span>
-                        <input
-                          type="text"
+                        <select
                           value={item.dosage}
                           onChange={(event) =>
                             updatePrescription(
@@ -940,14 +1206,24 @@ function OutpatientExaminationPage() {
                               event.target.value,
                             )
                           }
-                          placeholder="Contoh: 1 tablet"
-                        />
+                        >
+                          <option value="">Pilih dosis</option>
+                          {(dosageOptionsByForm[item.medicineForm] ?? [
+                            '1 tablet',
+                            '1 kapsul',
+                            '1 sendok takar',
+                            '1 bungkus',
+                          ]).map((dosageOption) => (
+                            <option value={dosageOption} key={dosageOption}>
+                              {dosageOption}
+                            </option>
+                          ))}
+                        </select>
                       </label>
 
                       <label>
                         <span>Frekuensi</span>
-                        <input
-                          type="text"
+                        <select
                           value={item.frequency}
                           onChange={(event) =>
                             updatePrescription(
@@ -956,8 +1232,17 @@ function OutpatientExaminationPage() {
                               event.target.value,
                             )
                           }
-                          placeholder="Contoh: 3x sehari"
-                        />
+                        >
+                          <option value="">Pilih frekuensi</option>
+                          {frequencyOptions.map((frequencyOption) => (
+                            <option
+                              value={frequencyOption}
+                              key={frequencyOption}
+                            >
+                              {frequencyOption}
+                            </option>
+                          ))}
+                        </select>
                       </label>
 
                       <label>
@@ -972,12 +1257,36 @@ function OutpatientExaminationPage() {
                               event.target.value,
                             )
                           }
-                          placeholder="Contoh: 10 tablet"
+                          placeholder="Contoh: 10 tablet / 1 botol"
                         />
                       </label>
 
+                      <label>
+                        <span>Aturan Pakai</span>
+                        <select
+                          value={item.instruction}
+                          onChange={(event) =>
+                            updatePrescription(
+                              item.id,
+                              'instruction',
+                              event.target.value,
+                            )
+                          }
+                        >
+                          <option value="">Pilih aturan pakai</option>
+                          {instructionOptions.map((instructionOption) => (
+                            <option
+                              value={instructionOption}
+                              key={instructionOption}
+                            >
+                              {instructionOption}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
                       <label className="full-span">
-                        <span>Aturan / Catatan Pakai</span>
+                        <span>Catatan Pakai Manual</span>
                         <input
                           type="text"
                           value={item.instruction}
@@ -988,7 +1297,7 @@ function OutpatientExaminationPage() {
                               event.target.value,
                             )
                           }
-                          placeholder="Contoh: diminum sesudah makan"
+                          placeholder="Boleh diketik manual jika aturan tidak tersedia"
                         />
                       </label>
                     </div>
