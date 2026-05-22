@@ -92,11 +92,66 @@ const emergencyProcedureOptions = [
 
 const emergencyDispositionOptions = [
   'Observasi Lanjutan',
+  'Ruang Tindakan / Operasi',
   'Rawat Inap',
   'Rujuk',
   'Pulang',
   'Meninggal',
 ]
+
+const getEmergencyNextFlow = (disposition: string) => {
+  switch (disposition) {
+    case 'Ruang Tindakan / Operasi':
+      return {
+        title: 'Arahkan ke Ruang Tindakan / Operasi',
+        description:
+          'Pasien membutuhkan tindakan segera. Siapkan informed consent, DPJP/Operator, tindakan operasi/prosedur, dan koordinasi kamar tindakan/IBS.',
+        primaryAction: 'Siapkan Ruang Tindakan',
+        nextModule: 'IBS / Ruang Tindakan',
+      }
+    case 'Rawat Inap':
+      return {
+        title: 'Arahkan ke Rawat Inap',
+        description:
+          'Pasien membutuhkan perawatan lanjutan. Siapkan permintaan kamar, DPJP rawat inap, dan transfer pasien dari IGD ke ruangan.',
+        primaryAction: 'Siapkan Rawat Inap',
+        nextModule: 'Rawat Inap',
+      }
+    case 'Rujuk':
+      return {
+        title: 'Arahkan ke Proses Rujukan',
+        description:
+          'Pasien perlu dirujuk ke fasilitas lain. Siapkan alasan rujukan, RS tujuan, transportasi, dan ringkasan medis.',
+        primaryAction: 'Siapkan Rujukan',
+        nextModule: 'Rujukan',
+      }
+    case 'Pulang':
+      return {
+        title: 'Arahkan ke Farmasi dan Kasir',
+        description:
+          'Pasien dapat pulang setelah terapi selesai. Pastikan resep, edukasi pulang, dan tagihan selesai.',
+        primaryAction: 'Lanjut Farmasi / Kasir',
+        nextModule: 'Farmasi & Kasir',
+      }
+    case 'Meninggal':
+      return {
+        title: 'Proses Administrasi Pasien Meninggal',
+        description:
+          'Lakukan pencatatan administrasi, ringkasan medis, dan proses serah terima sesuai prosedur rumah sakit.',
+        primaryAction: 'Proses Administrasi',
+        nextModule: 'Administrasi IGD',
+      }
+    default:
+      return {
+        title: 'Observasi Lanjutan di IGD',
+        description:
+          'Pasien tetap dipantau di IGD sampai kondisi stabil atau diputuskan disposisi berikutnya.',
+        primaryAction: 'Lanjut Observasi',
+        nextModule: 'Observasi IGD',
+      }
+  }
+}
+
 
 type EmergencyAssessmentForm = {
   id: string
@@ -443,6 +498,8 @@ function EmergencyAssessmentPage() {
       console.error('Gagal menyimpan penanganan IGD lokal:', error)
     }
   }
+
+  const emergencyNextFlow = getEmergencyNextFlow(handling.disposition)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -909,6 +966,22 @@ function EmergencyAssessmentPage() {
                   Simpan Penanganan IGD
                 </button>
               </div>
+
+              <div className="emergency-next-flow-card">
+                <small>ALUR LANJUTAN</small>
+                <h3>{emergencyNextFlow.title}</h3>
+                <p>{emergencyNextFlow.description}</p>
+
+                <div className="emergency-next-flow-meta">
+                  <span>Modul Tujuan</span>
+                  <strong>{emergencyNextFlow.nextModule}</strong>
+                </div>
+
+                <button type="button">
+                  {emergencyNextFlow.primaryAction}
+                </button>
+              </div>
+
             </article>
 
 

@@ -6337,3 +6337,62 @@
     width: 100%;
   }
 }
+
+/* Emergency next flow */
+.emergency-next-flow-card {
+  margin-top: 16px;
+  border: 1px solid rgba(251, 146, 60, 0.32);
+  border-radius: 18px;
+  background: rgba(124, 45, 18, 0.16);
+  padding: 18px;
+}
+
+.emergency-next-flow-card small {
+  display: block;
+  color: #fdba74;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.emergency-next-flow-card h3 {
+  color: #fff7ed;
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+
+.emergency-next-flow-card p {
+  color: #fed7aa;
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+
+.emergency-next-flow-meta {
+  border: 1px solid rgba(251, 146, 60, 0.22);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.55);
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.emergency-next-flow-meta span {
+  display: block;
+  color: #fdba74;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.emergency-next-flow-meta strong {
+  color: #fff7ed;
+}
+
+.emergency-next-flow-card button {
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: #fff7ed;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 11px 16px;
+}
