@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
+import { readStorage, writeStorage } from '../services/simrsStorage'
 import { simrsStorageKeys } from '../services/simrsStorageKeys'
 
 type PaymentStatus =
@@ -90,21 +91,6 @@ const formatCurrency = (value: number) =>
     currency: 'IDR',
     maximumFractionDigits: 0,
   }).format(value)
-
-const readStorage = <T,>(key: string): T | null => {
-  try {
-    const rawValue = window.localStorage.getItem(key)
-
-    if (!rawValue) {
-      return null
-    }
-
-    return JSON.parse(rawValue) as T
-  } catch (error) {
-    console.error(`Gagal membaca ${key}:`, error)
-    return null
-  }
-}
 
 function CashierPage() {
   const [operatingBilling, setOperatingBilling] =
@@ -778,14 +764,9 @@ function CashierPage() {
       sentAt: new Date().toISOString(),
     }
 
-    const existingQueue = (() => {
-      try {
-        const rawValue = window.localStorage.getItem(pharmacyQueueStorageKey)
-        return rawValue ? JSON.parse(rawValue) : []
-      } catch {
-        return []
-      }
-    })()
+    const existingQueue =
+      readStorage<Array<{ medicalRecordNo?: string }>>(pharmacyQueueStorageKey) ||
+      []
 
     const nextQueue = [
       payload,
@@ -795,10 +776,7 @@ function CashierPage() {
       ),
     ]
 
-    window.localStorage.setItem(
-      pharmacyQueueStorageKey,
-      JSON.stringify(nextQueue),
-    )
+    writeStorage(pharmacyQueueStorageKey, nextQueue)
 
     window.location.href = '/farmasi'
   }
@@ -826,7 +804,7 @@ function CashierPage() {
       savedAt: new Date().toISOString(),
     }
 
-    window.localStorage.setItem(cashierPaymentStorageKey, JSON.stringify(payload))
+    writeStorage(cashierPaymentStorageKey, payload)
 
     setIsSaved(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
