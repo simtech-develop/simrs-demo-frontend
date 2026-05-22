@@ -242,73 +242,6 @@ const guarantorOptions = [
   'Perusahaan',
 ]
 
-const registeredPatientSamples = [
-  {
-    label: 'Ujang / RM-2026-821518',
-    nik: '5634563456345635',
-    fullName: 'Ujang',
-    birthPlace: 'Cianjur',
-    birthDate: '1999-08-15',
-    gender: 'L',
-    maritalStatus: 'Belum Menikah',
-    phone: '08124567894213',
-    email: 'ujang.bpjs@example.com',
-    address: 'Jl. Dendek No.29',
-    district: 'Cibarekbeg',
-    city: 'Cianjur',
-    guarantor: 'BPJS Kesehatan',
-    guarantorNumber: '0001234567890',
-    careClass: 'Kelas II',
-    patientStatus: 'Pasien Baru',
-    destination: 'Poli Umum',
-    visitType: 'Datang Langsung',
-    initialComplaint: 'Pemeriksaan pertama',
-  },
-  {
-    label: 'Slamet Riyadi / RM-IGD-0001',
-    nik: '3275010101010001',
-    fullName: 'Slamet Riyadi',
-    birthPlace: 'Bandung',
-    birthDate: '1988-04-12',
-    gender: 'L',
-    maritalStatus: 'Menikah',
-    phone: '081298765432',
-    email: 'slamet.riyadi@example.com',
-    address: 'Jl. Melati Raya No.12',
-    district: 'Cimahi Tengah',
-    city: 'Cimahi',
-    guarantor: 'BPJS Kesehatan',
-    guarantorNumber: '0009876543210',
-    careClass: 'Kelas I',
-    patientStatus: 'Pasien Lama',
-    destination: 'IGD',
-    visitType: 'IGD',
-    initialComplaint: 'Demam tinggi dan lemas sejak pagi',
-  },
-  {
-    label: 'Jamilah / RM-2026-972426',
-    nik: '2435624362436426',
-    fullName: 'Jamilah',
-    birthPlace: 'Garut',
-    birthDate: '1979-11-21',
-    gender: 'P',
-    maritalStatus: 'Menikah',
-    phone: '082112345678',
-    email: 'jamilah.bpjs@example.com',
-    address: 'Kp. Sukamaju RT 02 RW 04',
-    district: 'Tarogong Kidul',
-    city: 'Garut',
-    guarantor: 'BPJS Kesehatan',
-    guarantorNumber: '0004567891234',
-    careClass: 'Kelas III',
-    patientStatus: 'Pasien Lama',
-    destination: 'Poli Penyakit Dalam',
-    visitType: 'Rujukan FKTP',
-    initialComplaint: 'Kontrol tekanan darah dan gula darah',
-  },
-]
-
-
 type PatientForm = {
   nik: string
   fullName: string
@@ -572,36 +505,6 @@ function NewPatientRegistrationPage() {
     } finally {
       setIsSaving(false)
     }
-  }
-
-  const applyRegisteredPatient = (registeredPatient: typeof registeredPatientSamples[number]) => {
-    setForm((currentForm) => ({
-      ...currentForm,
-      nik: registeredPatient.nik,
-      fullName: registeredPatient.fullName,
-      birthPlace: registeredPatient.birthPlace,
-      birthDate: registeredPatient.birthDate,
-      gender: registeredPatient.gender,
-      maritalStatus: registeredPatient.maritalStatus,
-      phone: registeredPatient.phone,
-      email: registeredPatient.email,
-      address: registeredPatient.address,
-      district: registeredPatient.district,
-      city: registeredPatient.city,
-      guarantor: registeredPatient.guarantor,
-      guarantorNumber: registeredPatient.guarantorNumber,
-      careClass: registeredPatient.careClass,
-      patientStatus: registeredPatient.patientStatus,
-      destination: registeredPatient.destination,
-      visitType: registeredPatient.visitType,
-      initialComplaint: registeredPatient.initialComplaint,
-    }))
-
-    setSelectedService(registeredPatient.destination)
-    setSelectedDoctor(getDefaultDoctorName(registeredPatient.destination))
-    setBirthDateDisplay(formatDateToDDMMYYYY(registeredPatient.birthDate))
-    setIsSaved(false)
-    setSubmitError('')
   }
 
   const applyBirthDatePicker = (
@@ -1013,32 +916,6 @@ function NewPatientRegistrationPage() {
               </div>
 
               <div className="form-grid two-columns">
-              <div className="dummy-bpjs-panel">
-
-                <select
-                  defaultValue=""
-                  onChange={(event) => {
-                    const selectedDummy = registeredPatientSamples.find(
-                      (patient) => patient.guarantorNumber === event.target.value,
-                    )
-
-                    if (selectedDummy) {
-                      applyRegisteredPatient(selectedDummy)
-                    }
-                  }}
-                >
-                  <option value="">Cari / pilih pasien yang sudah ada</option>
-                  {registeredPatientSamples.map((patient) => (
-                    <option
-                      value={patient.guarantorNumber}
-                      key={patient.guarantorNumber}
-                    >
-                      {patient.label} - {patient.guarantorNumber}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
                 <label>
                   <span>Jenis Penjamin</span>
                   <select
