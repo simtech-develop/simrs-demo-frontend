@@ -3,6 +3,193 @@ import type { FormEvent } from 'react'
 import { Link } from 'react-router'
 import { api } from '../lib/api'
 
+const dateDayOptions = Array.from({ length: 31 }, (_, index) =>
+  String(index + 1).padStart(2, '0'),
+)
+
+const dateMonthOptions = [
+  { value: '01', label: 'Januari' },
+  { value: '02', label: 'Februari' },
+  { value: '03', label: 'Maret' },
+  { value: '04', label: 'April' },
+  { value: '05', label: 'Mei' },
+  { value: '06', label: 'Juni' },
+  { value: '07', label: 'Juli' },
+  { value: '08', label: 'Agustus' },
+  { value: '09', label: 'September' },
+  { value: '10', label: 'Oktober' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'Desember' },
+]
+
+const dateYearOptions = Array.from({ length: 90 }, (_, index) =>
+  String(new Date().getFullYear() - index),
+)
+
+const formatDateToDDMMYYYY = (value?: string | null) => {
+  if (!value || value === '-') {
+    return ''
+  }
+
+  const normalizedValue = value.includes('T') ? value.split('T')[0] : value
+  const parts = normalizedValue.split('-')
+
+  if (parts.length !== 3) {
+    return value
+  }
+
+  return `${parts[2]}-${parts[1]}-${parts[0]}`
+}
+
+const parseDDMMYYYYToISO = (value: string) => {
+  const cleanedValue = value.trim()
+
+  if (!/^\d{2}-\d{2}-\d{4}$/.test(cleanedValue)) {
+    return ''
+  }
+
+  const [day, month, year] = cleanedValue.split('-')
+
+  return `${year}-${month}-${day}`
+}
+
+const normalizeDateDisplayInput = (value: string) => {
+  const digitsOnly = value.replace(/\D/g, '').slice(0, 8)
+
+  if (digitsOnly.length <= 2) {
+    return digitsOnly
+  }
+
+  if (digitsOnly.length <= 4) {
+    return `${digitsOnly.slice(0, 2)}-${digitsOnly.slice(2)}`
+  }
+
+  return `${digitsOnly.slice(0, 2)}-${digitsOnly.slice(2, 4)}-${digitsOnly.slice(4)}`
+}
+
+
+
+const REGISTRATION_EDIT_STORAGE_KEY = 'simrs_registration_edit_overrides'
+
+type LocalRegistrationOverride = {
+  id: string
+  rm: string
+  patient: string
+  nik: string
+  service: string
+  doctor: string
+  type: string
+  payerType: 'Umum' | 'BPJS' | 'Asuransi'
+  insuranceNo: string
+  phone: string
+  address: string
+  gender: 'Laki-laki' | 'Perempuan' | '-'
+  birthDate: string
+  queue: string
+  status: 'Menunggu' | 'Terverifikasi' | 'Dilayani' | 'Dibatalkan'
+}
+
+const getQueuePrefixByService = (service: string) => {
+  const normalizedService = service.toLowerCase()
+
+  if (normalizedService.includes('igd')) {
+    return 'IGD'
+  }
+
+  if (normalizedService.includes('penyakit dalam')) {
+    return 'PD'
+  }
+
+  if (normalizedService.includes('anak')) {
+    return 'ANAK'
+  }
+
+  if (normalizedService.includes('bedah')) {
+    return 'BDH'
+  }
+
+  if (normalizedService.includes('kandungan')) {
+    return 'OBG'
+  }
+
+  if (normalizedService.includes('gigi')) {
+    return 'GIGI'
+  }
+
+  if (normalizedService.includes('laboratorium')) {
+    return 'LAB'
+  }
+
+  if (normalizedService.includes('radiologi')) {
+    return 'RAD'
+  }
+
+  return 'UMUM'
+}
+
+const mapGuarantorToPayerType = (
+  guarantor: string,
+): LocalRegistrationOverride['payerType'] => {
+  if (guarantor === 'BPJS Kesehatan') {
+    return 'BPJS'
+  }
+
+  if (guarantor === 'Asuransi Swasta' || guarantor === 'Perusahaan') {
+    return 'Asuransi'
+  }
+
+  return 'Umum'
+}
+
+const mapPatientGender = (
+  gender: string,
+): LocalRegistrationOverride['gender'] => {
+  if (gender === 'L') {
+    return 'Laki-laki'
+  }
+
+  if (gender === 'P') {
+    return 'Perempuan'
+  }
+
+  return '-'
+}
+
+const saveNewRegistrationOverride = (registration: LocalRegistrationOverride) => {
+  try {
+    const currentValue = window.localStorage.getItem(
+      REGISTRATION_EDIT_STORAGE_KEY,
+    )
+
+    const currentOverrides: Record<string, LocalRegistrationOverride> =
+      currentValue ? JSON.parse(currentValue) : {}
+
+    const overrideKeys = [
+      registration.id,
+      registration.rm,
+      registration.nik,
+      registration.queue,
+      registration.patient,
+    ].filter(Boolean)
+
+    overrideKeys.forEach((key) => {
+      currentOverrides[key] = registration
+    })
+
+    window.localStorage.setItem(
+      REGISTRATION_EDIT_STORAGE_KEY,
+      JSON.stringify(currentOverrides),
+    )
+
+    window.localStorage.setItem(
+      'simrs_last_registration_edit',
+      JSON.stringify(registration),
+    )
+  } catch (error) {
+    console.error('Gagal menyimpan data registrasi lokal:', error)
+  }
+}
+
 const doctorOptionsByService: Record<string, string[]> = {
   'Poli Umum': [
     'dr. Andi Pratama',
@@ -202,6 +389,10 @@ const initialForm: PatientForm = {
 
 function NewPatientRegistrationPage() {
   const [form, setForm] = useState<PatientForm>(initialForm)
+  const [birthDateDisplay, setBirthDateDisplay] = useState('')
+  const [birthDatePickerDay, setBirthDatePickerDay] = useState('')
+  const [birthDatePickerMonth, setBirthDatePickerMonth] = useState('')
+  const [birthDatePickerYear, setBirthDatePickerYear] = useState('')
   const [selectedService, setSelectedService] = useState('Poli Umum')
   const [selectedDoctor, setSelectedDoctor] = useState(getDefaultDoctorName('Poli Umum'))
   const [isSaved, setIsSaved] = useState(false)
@@ -333,6 +524,38 @@ function NewPatientRegistrationPage() {
         clinicId: selectedClinic.id,
       })
 
+      const registrationAny = registration as any
+      const patientAny = patient as any
+      const queueNumber = String(registrationAny?.queueNumber || 1).padStart(
+        3,
+        '0',
+      )
+      const queuePrefix =
+        selectedClinic.code || getQueuePrefixByService(selectedService)
+
+      const localRegistration: LocalRegistrationOverride = {
+        id: String(registrationAny?.id || ''),
+        rm: String(patientAny?.medicalRecordNo || ''),
+        patient: form.fullName,
+        nik: form.nik,
+        service: selectedService,
+        doctor: selectedDoctor || getDefaultDoctorName(selectedService),
+        type: form.visitType || form.patientStatus || 'Pasien Baru',
+        payerType: mapGuarantorToPayerType(form.guarantor),
+        insuranceNo:
+          form.guarantor === 'Umum' || !form.guarantorNumber
+            ? '-'
+            : form.guarantorNumber,
+        phone: form.phone || '-',
+        address: `${form.address}, ${form.district}, ${form.city}`,
+        gender: mapPatientGender(form.gender),
+        birthDate: form.birthDate || '-',
+        queue: `${queuePrefix}-${queueNumber}`,
+        status: 'Menunggu',
+      }
+
+      saveNewRegistrationOverride(localRegistration)
+
       setSavedRegistration(registration)
       setIsSaved(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -376,12 +599,37 @@ function NewPatientRegistrationPage() {
 
     setSelectedService(dummyPatient.destination)
     setSelectedDoctor(getDefaultDoctorName(dummyPatient.destination))
+    setBirthDateDisplay(formatDateToDDMMYYYY(dummyPatient.birthDate))
     setIsSaved(false)
     setSubmitError('')
   }
 
+  const applyBirthDatePicker = (
+    day: string,
+    month: string,
+    year: string,
+  ) => {
+    setBirthDatePickerDay(day)
+    setBirthDatePickerMonth(month)
+    setBirthDatePickerYear(year)
+
+    if (day && month && year) {
+      const displayValue = `${day}-${month}-${year}`
+
+      setBirthDateDisplay(displayValue)
+      setForm((currentForm) => ({
+        ...currentForm,
+        birthDate: parseDDMMYYYYToISO(displayValue),
+      }))
+    }
+  }
+
   const resetForm = () => {
     setForm(initialForm)
+    setBirthDateDisplay('')
+    setBirthDatePickerDay('')
+    setBirthDatePickerMonth('')
+    setBirthDatePickerYear('')
     setIsSaved(false)
     setIsSaving(false)
     setSubmitError('')
@@ -536,11 +784,134 @@ function NewPatientRegistrationPage() {
 
                 <label>
                   <span>Tanggal Lahir</span>
-                  <input
-                    type="date"
-                    value={form.birthDate}
-                    onChange={(event) => updateField('birthDate', event.target.value)}
-                  />
+                  <div className="date-input-with-picker">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={birthDateDisplay}
+                      onChange={(event) => {
+                        const nextDisplayValue = normalizeDateDisplayInput(
+                          event.target.value,
+                        )
+
+                        setBirthDateDisplay(nextDisplayValue)
+                        setForm((currentForm) => ({
+                          ...currentForm,
+                          birthDate: parseDDMMYYYYToISO(nextDisplayValue),
+                        }))
+
+                        const [day = '', month = '', year = ''] =
+                          nextDisplayValue.split('-')
+
+                        setBirthDatePickerDay(day)
+                        setBirthDatePickerMonth(month)
+                        setBirthDatePickerYear(year)
+                      }}
+                      placeholder="DD-MM-YYYY"
+                      maxLength={10}
+                    />
+
+                    <button
+                      type="button"
+                      className="date-picker-button"
+                      onClick={() => {
+                        const picker = document.getElementById(
+                          'new-patient-birth-date-picker',
+                        ) as HTMLInputElement | null
+
+                        if (picker?.showPicker) {
+                          picker.showPicker()
+                        } else {
+                          picker?.click()
+                        }
+                      }}
+                      aria-label="Pilih tanggal lahir"
+                    >
+                      📅
+                    </button>
+
+                    <input
+                      id="new-patient-birth-date-picker"
+                      className="date-picker-hidden-input"
+                      type="date"
+                      value={form.birthDate}
+                      onChange={(event) => {
+                        const isoValue = event.target.value
+                        const displayValue = formatDateToDDMMYYYY(isoValue)
+                        const [day = '', month = '', year = ''] =
+                          displayValue.split('-')
+
+                        setForm((currentForm) => ({
+                          ...currentForm,
+                          birthDate: isoValue,
+                        }))
+                        setBirthDateDisplay(displayValue)
+                        setBirthDatePickerDay(day)
+                        setBirthDatePickerMonth(month)
+                        setBirthDatePickerYear(year)
+                      }}
+                    />
+                  </div>
+
+                  <div className="date-select-picker">
+                    <select
+                      value={birthDatePickerDay}
+                      onChange={(event) =>
+                        applyBirthDatePicker(
+                          event.target.value,
+                          birthDatePickerMonth,
+                          birthDatePickerYear,
+                        )
+                      }
+                    >
+                      <option value="">Tanggal</option>
+                      {dateDayOptions.map((day) => (
+                        <option value={day} key={day}>
+                          {day}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={birthDatePickerMonth}
+                      onChange={(event) =>
+                        applyBirthDatePicker(
+                          birthDatePickerDay,
+                          event.target.value,
+                          birthDatePickerYear,
+                        )
+                      }
+                    >
+                      <option value="">Bulan</option>
+                      {dateMonthOptions.map((month) => (
+                        <option value={month.value} key={month.value}>
+                          {month.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={birthDatePickerYear}
+                      onChange={(event) =>
+                        applyBirthDatePicker(
+                          birthDatePickerDay,
+                          birthDatePickerMonth,
+                          event.target.value,
+                        )
+                      }
+                    >
+                      <option value="">Tahun</option>
+                      {dateYearOptions.map((year) => (
+                        <option value={year} key={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <small className="date-format-preview">
+                    Format tanggal: DD-MM-YYYY
+                  </small>
                 </label>
 
                 <label>

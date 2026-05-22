@@ -2,6 +2,22 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { api } from '../lib/api'
 
+const formatDateToDDMMYYYY = (value?: string | null) => {
+  if (!value || value === '-') {
+    return '-'
+  }
+
+  const normalizedValue = value.includes('T') ? value.split('T')[0] : value
+  const parts = normalizedValue.split('-')
+
+  if (parts.length !== 3) {
+    return value
+  }
+
+  return `${parts[2]}-${parts[1]}-${parts[0]}`
+}
+
+
 const visitChannels = [
   'Datang Langsung',
   'Rujukan FKTP',
@@ -401,6 +417,47 @@ const mergeRegistrationWithOverride = (
   return override ? { ...registration, ...override } : registration
 }
 
+const getStatusOperationalNote = (status: RegistrationRow['status']) => {
+  switch (status) {
+    case 'Menunggu':
+      return 'Menunggu verifikasi'
+    case 'Terverifikasi':
+      return 'Siap pelayanan'
+    case 'Dilayani':
+      return 'Sedang/selesai layanan'
+    case 'Dibatalkan':
+      return 'Registrasi tidak aktif'
+    default:
+      return '-'
+  }
+}
+
+const normalizeDateDisplayInput = (value: string) => {
+  const digitsOnly = value.replace(/\D/g, '').slice(0, 8)
+
+  if (digitsOnly.length <= 2) {
+    return digitsOnly
+  }
+
+  if (digitsOnly.length <= 4) {
+    return `${digitsOnly.slice(0, 2)}-${digitsOnly.slice(2)}`
+  }
+
+  return `${digitsOnly.slice(0, 2)}-${digitsOnly.slice(2, 4)}-${digitsOnly.slice(4)}`
+}
+
+const parseDDMMYYYYToISO = (value: string) => {
+  const cleanedValue = value.trim()
+
+  if (!/^\d{2}-\d{2}-\d{4}$/.test(cleanedValue)) {
+    return ''
+  }
+
+  const [day, month, year] = cleanedValue.split('-')
+
+  return `${year}-${month}-${day}`
+}
+
 function RegistrationPage() {
   const [registrations, setRegistrations] = useState<RegistrationRow[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -657,10 +714,15 @@ function RegistrationPage() {
 
     const normalizedRegistration: RegistrationRow = {
       ...selectedRegistration,
-      queue: normalizeQueueByService(
-        selectedRegistration.service,
-        selectedRegistration.queue,
-      ),
+      queue:
+        selectedRegistration.status === 'Dibatalkan'
+          ? '-'
+          : normalizeQueueByService(
+              selectedRegistration.service,
+              selectedRegistration.queue && selectedRegistration.queue !== '-'
+                ? selectedRegistration.queue
+                : '001',
+            ),
       insuranceNo:
         selectedRegistration.payerType === 'BPJS' &&
         (!selectedRegistration.insuranceNo ||
@@ -973,7 +1035,11 @@ function RegistrationPage() {
                             ? row.insuranceNo
                             : 'Belum Diisi'}
                       </td>
-                      <td>{row.queue}</td>
+                      <td>
+                        {row.status === 'Dibatalkan'
+                          ? 'Tidak Aktif'
+                          : row.queue}
+                      </td>
                       <td>
                         <span
                           className={`registration-status ${
@@ -988,6 +1054,9 @@ function RegistrationPage() {
                         >
                           {row.status}
                         </span>
+                        <small className="registration-status-note">
+                          {getStatusOperationalNote(row.status)}
+                        </small>
                       </td>
                       <td>
                         <div className="registration-action-row">
@@ -1003,7 +1072,7 @@ function RegistrationPage() {
                             type="button"
                             onClick={() => openEditModal(row)}
                           >
-                            Edit
+                            {row.status === 'Dibatalkan' ? 'Review' : 'Edit'}
                           </button>
                         </div>
                       </td>
@@ -1115,20 +1184,66 @@ function RegistrationPage() {
 
                 <label>
                   <span>Tanggal Lahir</span>
-                  <input
-                    type="date"
-                    value={
-                      selectedRegistration.birthDate === '-'
-                        ? ''
-                        : selectedRegistration.birthDate
-                    }
-                    onChange={(event) =>
-                      setSelectedRegistration({
-                        ...selectedRegistration,
-                        birthDate: event.target.value || '-',
-                      })
-                    }
-                  />
+                  <div className="date-input-with-picker">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={formatDateToDDMMYYYY(selectedRegistration.birthDate)}
+                      onChange={(event) => {
+                        const nextDisplayValue = normalizeDateDisplayInput(
+                          event.target.value,
+                        )
+
+                        setSelectedRegistration({
+                          ...selectedRegistration,
+                          birthDate:
+                            parseDDMMYYYYToISO(nextDisplayValue) || '-',
+                        })
+                      }}
+                      placeholder="DD-MM-YYYY"
+                      maxLength={10}
+                    />
+
+                    <button
+                      type="button"
+                      className="date-picker-button"
+                      onClick={() => {
+                        const picker = document.getElementById(
+                          `edit-birth-date-picker-${selectedRegistration.id}`,
+                        ) as HTMLInputElement | null
+
+                        if (picker?.showPicker) {
+                          picker.showPicker()
+                        } else {
+                          picker?.click()
+                        }
+                      }}
+                      aria-label="Pilih tanggal lahir"
+                    >
+                      📅
+                    </button>
+
+                    <input
+                      id={`edit-birth-date-picker-${selectedRegistration.id}`}
+                      className="date-picker-hidden-input"
+                      type="date"
+                      value={
+                        selectedRegistration.birthDate === '-'
+                          ? ''
+                          : selectedRegistration.birthDate
+                      }
+                      onChange={(event) =>
+                        setSelectedRegistration({
+                          ...selectedRegistration,
+                          birthDate: event.target.value || '-',
+                        })
+                      }
+                    />
+                  </div>
+
+                  <small className="date-format-preview">
+                    Format tanggal: DD-MM-YYYY
+                  </small>
                 </label>
 
                 <label>
@@ -1330,9 +1445,27 @@ function RegistrationPage() {
                   <select
                     value={selectedRegistration.status}
                     onChange={(event) =>
-                      setSelectedRegistration({
-                        ...selectedRegistration,
-                        status: event.target.value as RegistrationRow['status'],
+                      setSelectedRegistration((currentRegistration) => {
+                        if (!currentRegistration) {
+                          return currentRegistration
+                        }
+
+                        const nextStatus =
+                          event.target.value as RegistrationRow['status']
+
+                        return {
+                          ...currentRegistration,
+                          status: nextStatus,
+                          queue:
+                            nextStatus === 'Dibatalkan'
+                              ? '-'
+                              : currentRegistration.queue === '-'
+                                ? normalizeQueueByService(
+                                    currentRegistration.service,
+                                    '001',
+                                  )
+                                : currentRegistration.queue,
+                        }
                       })
                     }
                   >

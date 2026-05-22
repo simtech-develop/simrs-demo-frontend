@@ -5839,3 +5839,114 @@
 .registration-table td:nth-child(7) {
   min-width: 150px;
 }
+
+/* Registration operational status note */
+.registration-status-note {
+  display: block;
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.registration-status.canceled {
+  border: 1px solid rgba(239, 68, 68, 0.32);
+  background: rgba(239, 68, 68, 0.14);
+  color: #fca5a5;
+}
+
+.registration-status.verified {
+  border: 1px solid rgba(59, 130, 246, 0.32);
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd;
+}
+
+.registration-status.waiting {
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  background: rgba(245, 158, 11, 0.14);
+  color: #fcd34d;
+}
+
+/* Date display helper */
+.date-format-preview {
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Date format helper */
+.date-format-preview {
+  display: block;
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Date input with calendar picker */
+.date-input-with-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.date-input-with-picker > input[type='text'] {
+  width: 100%;
+  padding-right: 54px;
+}
+
+.date-picker-button {
+  position: absolute;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.date-picker-button:hover {
+  border-color: rgba(56, 189, 248, 0.6);
+  background: rgba(14, 165, 233, 0.16);
+}
+
+.date-picker-hidden-input {
+  position: absolute;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Manual date picker select */
+.date-select-picker {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.date-select-picker select {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 14px;
+  background: #020617;
+  color: #e2e8f0;
+  font-size: 14px;
+  padding: 12px 14px;
+  outline: none;
+}
+
+.date-select-picker select:focus {
+  border-color: rgba(56, 189, 248, 0.8);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
+}
+
+@media (max-width: 768px) {
+  .date-select-picker {
+    grid-template-columns: 1fr;
+  }
+}

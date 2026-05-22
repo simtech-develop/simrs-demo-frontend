@@ -2,6 +2,22 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { api } from '../lib/api'
 
+const formatDateToDDMMYYYY = (value?: string | null) => {
+  if (!value || value === '-') {
+    return '-'
+  }
+
+  const normalizedValue = value.includes('T') ? value.split('T')[0] : value
+  const parts = normalizedValue.split('-')
+
+  if (parts.length !== 3) {
+    return value
+  }
+
+  return `${parts[2]}-${parts[1]}-${parts[0]}`
+}
+
+
 const REGISTRATION_EDIT_STORAGE_KEY = 'simrs_registration_edit_overrides'
 
 type RegistrationEditOverride = {
@@ -75,19 +91,9 @@ const getRegistrationEditOverride = (
   }
 }
 
-const formatEditedBirthDate = (value?: string) => {
-  if (!value || value === '-') {
-    return '-'
-  }
+const formatEditedBirthDate = (value?: string) =>
+  formatDateToDDMMYYYY(value)
 
-  const parts = value.split('-')
-
-  if (parts.length !== 3) {
-    return value
-  }
-
-  return `${parts[2]}/${parts[1]}/${parts[0]}`
-}
 
 const mapEditedPayerType = (payerType?: string) => {
   if (payerType === 'BPJS') {
