@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { api } from '../lib/api'
 
+const outpatientExamStorageKey = 'simrs_outpatient_exam_demo'
+
 const extractTextBetween = (
   text: string,
   startLabel: string,
@@ -290,6 +292,38 @@ type ApiMedicalRecord = {
   }
 }
 
+const readFallbackMedicalRecordDetail = (
+  registrationId?: string,
+): ApiMedicalRecord | null => {
+  if (!registrationId || typeof window === 'undefined') {
+    return null
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(outpatientExamStorageKey)
+
+    if (!rawValue) {
+      return null
+    }
+
+    const record = JSON.parse(rawValue) as ApiMedicalRecord
+
+    if (record.registrationId !== registrationId) {
+      return null
+    }
+
+    return {
+      ...record,
+      examinedAt: record.examinedAt || record.createdAt || new Date().toISOString(),
+      createdAt: record.createdAt || new Date().toISOString(),
+      updatedAt: record.updatedAt || record.createdAt || new Date().toISOString(),
+    }
+  } catch (error) {
+    console.error('Gagal membaca detail RME lokal:', error)
+    return null
+  }
+}
+
 type ParsedClinicalRecord = {
   chiefComplaint: string
   currentHistory: string
@@ -419,7 +453,14 @@ function MedicalRecordDetailPage() {
           : 'Gagal memuat detail rekam medis dari backend.'
 
       setMedicalRecord(null)
-      setLoadError(message)
+      const fallbackRecord = readFallbackMedicalRecordDetail(id)
+
+      if (fallbackRecord) {
+        setMedicalRecord(fallbackRecord)
+        setLoadError(`${message} Detail RME lokal demo ditampilkan sebagai fallback.`)
+      } else {
+        setLoadError(message)
+      }
     } finally {
       setIsLoading(false)
     }

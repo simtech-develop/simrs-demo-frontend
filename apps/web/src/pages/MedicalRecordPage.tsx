@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { api } from '../lib/api'
 
+const outpatientExamStorageKey = 'simrs_outpatient_exam_demo'
+
 type ApiMedicalRecord = {
   id: string
   registrationId: string
@@ -85,6 +87,63 @@ type MedicalRecordRow = {
   detailPath: string
 }
 
+type LocalOutpatientExamRecord = {
+  id?: string
+  registrationId: string
+  anamnesis?: string | null
+  diagnosis?: string | null
+  savedAt?: string
+  registration: {
+    id: string
+    registrationNo: string
+    patient: {
+      id: string
+      medicalRecordNo: string
+      fullName: string
+    }
+    clinic: {
+      id: string
+      code: string
+      name: string
+    }
+  }
+}
+
+const readFallbackOutpatientExamRecords = (): MedicalRecordRow[] => {
+  try {
+    const rawValue = window.localStorage.getItem(outpatientExamStorageKey)
+
+    if (!rawValue) {
+      return []
+    }
+
+    const record = JSON.parse(rawValue) as LocalOutpatientExamRecord
+    const summary =
+      record.diagnosis && record.diagnosis.trim() !== ''
+        ? record.diagnosis
+        : record.anamnesis && record.anamnesis.trim() !== ''
+          ? record.anamnesis.split('\n')[0]
+          : 'Catatan klinis rawat jalan tersimpan lokal'
+
+    return [
+      {
+        id: record.id || `local-rme-${record.registrationId}`,
+        registrationId: record.registrationId,
+        rm: record.registration.patient.medicalRecordNo,
+        patient: record.registration.patient.fullName,
+        service: record.registration.clinic.name,
+        summary,
+        recordType: 'Rawat Jalan',
+        status: 'Tersimpan Lokal',
+        detailPath: `/rme/detail/${record.registrationId}`,
+      },
+    ]
+  } catch (error) {
+    console.error('Gagal membaca fallback RME lokal:', error)
+    return []
+  }
+}
+
 function buildOutpatientSummary(record: ApiMedicalRecord) {
   if (record.diagnosis && record.diagnosis.trim() !== '') {
     return record.diagnosis
@@ -160,15 +219,28 @@ function MedicalRecordPage() {
         .filter((assessment) => assessment.status === 'TRIAGE_COMPLETED')
         .map(mapEmergencyRecord)
 
-      setMedicalRecords([...outpatientRows, ...emergencyRows])
+      const fallbackRows = readFallbackOutpatientExamRecords()
+      const backendRegistrationIds = new Set(
+        [...outpatientRows, ...emergencyRows].map((record) => record.registrationId),
+      )
+      const uniqueFallbackRows = fallbackRows.filter(
+        (record) => !backendRegistrationIds.has(record.registrationId),
+      )
+
+      setMedicalRecords([...uniqueFallbackRows, ...outpatientRows, ...emergencyRows])
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
           : 'Gagal memuat daftar rekam medis dari backend.'
 
-      setMedicalRecords([])
-      setLoadError(message)
+      const fallbackRows = readFallbackOutpatientExamRecords()
+      setMedicalRecords(fallbackRows)
+      setLoadError(
+        fallbackRows.length > 0
+          ? `${message} Data RME lokal demo ditampilkan sebagai fallback.`
+          : message,
+      )
     } finally {
       setIsLoading(false)
     }

@@ -104,6 +104,8 @@ const normalizeVitalTyping = (field: keyof ExamForm, value: string) => {
   return unit ? stripVitalUnit(value, unit) : value
 }
 
+const outpatientExamStorageKey = 'simrs_outpatient_exam_demo'
+
 const emptyExamForm: ExamForm = {
   chiefComplaint: '',
   currentHistory: '',
@@ -266,6 +268,68 @@ const createEmptyPrescription = (): PrescriptionItem => ({
   quantity: '',
   instruction: '',
 })
+
+const buildFallbackRegistration = (registrationId?: string): ApiRegistration => {
+  const isInternalMedicine =
+    registrationId === 'demo-registration-3' ||
+    registrationId === '3' ||
+    registrationId?.toLowerCase().includes('jamilah')
+
+  return {
+    id: registrationId || 'demo-registration-1',
+    registrationNo: isInternalMedicine ? 'REG-DEMO-003' : 'REG-DEMO-001',
+    visitDate: new Date().toISOString(),
+    queueNumber: isInternalMedicine ? 1 : 1,
+    chiefComplaint: isInternalMedicine
+      ? 'Kontrol tekanan darah dan keluhan mudah lelah.'
+      : 'Demam dan batuk sejak 2 hari.',
+    status: 'WAITING',
+    patient: {
+      id: isInternalMedicine ? 'demo-patient-3' : 'demo-patient-1',
+      medicalRecordNo: isInternalMedicine ? 'RM-2026-821520' : 'RM-2026-821518',
+      nationalId: isInternalMedicine ? '3275010303030003' : '5634563456345635',
+      fullName: isInternalMedicine ? 'Jamilah' : 'Ujang',
+    },
+    clinic: {
+      id: isInternalMedicine ? 'clinic-internal-medicine' : 'clinic-general',
+      code: isInternalMedicine ? 'PD' : 'PU',
+      name: isInternalMedicine ? 'Poli Penyakit Dalam' : 'Poli Umum',
+    },
+    doctor: {
+      id: isInternalMedicine ? 'doctor-internal-medicine' : 'doctor-general',
+      fullName: isInternalMedicine
+        ? 'dr. Bima Santoso, Sp.PD'
+        : 'dr. Andi Pratama',
+    },
+  }
+}
+
+const saveOutpatientExamFallback = (
+  registration: ApiRegistration,
+  payload: {
+    registrationId: string
+    anamnesis: string
+    physicalExamination: string
+    diagnosis: string
+    treatmentPlan: string
+    prescriptionNote: string
+  },
+) => {
+  const fallbackRecord = {
+    id: `demo-rme-${registration.id}`,
+    registration,
+    ...payload,
+    savedAt: new Date().toISOString(),
+    source: 'localStorage demo fallback',
+  }
+
+  window.localStorage.setItem(
+    outpatientExamStorageKey,
+    JSON.stringify(fallbackRecord),
+  )
+
+  return fallbackRecord
+}
 
 function buildQueue(registration: ApiRegistration) {
   return `${registration.clinic.code}-${String(
@@ -605,9 +669,16 @@ function OutpatientExaminationPage() {
           ? error.message
           : 'Gagal memuat data pemeriksaan rawat jalan.'
 
-      setRegistration(null)
+      const fallbackRegistration = buildFallbackRegistration(id)
+      setRegistration(fallbackRegistration)
       setMedicalRecord(null)
-      setLoadError(message)
+      setForm({
+        ...emptyExamForm,
+        chiefComplaint: fallbackRegistration.chiefComplaint ?? '',
+      })
+      setPrescriptions([createEmptyPrescription()])
+      setIsSaved(false)
+      setLoadError(`${message} Data demo lokal ditampilkan sebagai fallback.`)
     } finally {
       setIsLoading(false)
     }
@@ -818,11 +889,21 @@ function OutpatientExaminationPage() {
       const message =
         error instanceof Error
           ? error.message
-          : 'Pemeriksaan gagal disimpan ke backend.'
+          : 'Pemeriksaan belum berhasil disimpan.'
 
-      setIsSaved(false)
-      setSubmitError(message)
+      const fallbackRecord = saveOutpatientExamFallback(registration, payload)
+
+      setMedicalRecord(fallbackRecord as unknown as ApiMedicalRecord)
+      setSubmitError('')
+      setPharmacyMessage(
+        'RME tersimpan lokal sebagai demo fallback. Order farmasi backend dilewati.',
+      )
+      setCashierMessage(
+        'Tagihan kasir backend dilewati. Lanjutkan demo melalui modul RME Detail bila diperlukan.',
+      )
+      setIsSaved(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
+      console.warn('Fallback simpan RME lokal karena API gagal:', message)
     } finally {
       setIsSaving(false)
     }
